@@ -3,6 +3,9 @@
         "url": "https://slack-incoming-webhook-url",
         "icon_url": "https://slack-user-icon"
     },
+    "toggl": {
+        "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
     "message_format_by_event": {
         "item:added": ":new: *{content}* - `{project_name}`",
         "item:completed": ":heavy_check_mark: *{content}* - `{project_name}`"

@@ -10,6 +10,8 @@ REGION = 'ap-northeast-1'
 BUCKET = 'mamansoft-tina'
 KEY = '.tinaconfig'
 
+TOGGL_API_URL = 'https://www.toggl.com/api/v8'
+
 S3 = boto3.client('s3', region_name=REGION)
 app = Chalice(app_name='tina')
 app.debug = True
@@ -53,5 +55,17 @@ def todoist():
     # for debug
     print(r.status_code)
     print(r.content)
+
+    # Toggl action (only if needed)
+    def accessToggl(path):
+        return requests.get(TOGGL_API_URL+path, auth=(config['toggl']['api_token'], 'api_token'))
+
+    if entity['event'] != 'item:completed':
+        return {'result': 'ok'}
+    current_entry = accessToggl('/time_entries/current').json()['data']
+    if not current_entry or current_entry['description'] != entity['content']:
+        return {'result': 'ok'}
+
+    accessToggl('/time_entries/{}/stop'.format(current_entry['id']))
 
     return {'result': 'ok'}
