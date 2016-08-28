@@ -22,12 +22,16 @@ def ping():
 
 
 def body2entity(body, config):
-    project = config['project_by_id'].get(str(body['event_data']['project_id']))
+    project_id = str(body['event_data']['project_id'])
+
+    project = config['project_by_id'].get(project_id)
     if not project:
         return None
 
     return {
         "event": body['event_name'],
+        "id": str(body['event_data']['id']),
+        "project_id": project_id,
         "project_name": project['name'],
         "content": body['event_data']['content']
     }
@@ -41,11 +45,12 @@ def todoist():
     entity = body2entity(body, config)
 
     if not entity:
-        print('There is no project matched project_id {}'.format(body['event_data']['project_id']))
+        print('There is no project matched project_id {}'.format(entity['project_id']))
         return {'result': 'ok'}
 
+    special_message = config['message_format_by_id'].get(entity['id'])
     payload = {
-        "text": config['message_format_by_event'][entity['event']].format(**entity),
+        "text": special_message or config['message_format_by_event'][entity['event']].format(**entity),
         "username": u"TINA",
         "icon_url": config['slack']['icon_url']
     }
