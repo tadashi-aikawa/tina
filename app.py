@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from chalice import Chalice
-import boto3
 import json
+
+import boto3
 import requests
+from chalice import Chalice
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -16,6 +17,7 @@ S3 = boto3.client('s3', region_name=REGION)
 app = Chalice(app_name='tina')
 app.debug = True
 
+
 @app.route('/ping')
 def ping():
     return {'result': 'ok'}
@@ -25,26 +27,19 @@ def body2entity(body, config):
     project_id = str(body['event_data']['project_id'])
 
     project = config['project_by_id'].get(project_id)
-    if not project:
-        return None
-
     return {
         "event": body['event_name'],
         "id": str(body['event_data']['id']),
         "project_id": project_id,
-        "project_name": project['name'],
+        "project_name": project and project.get('name'),
         "content": body['event_data']['content']
     }
 
 
-@app.route('/todoist', methods=['POST'])
-def todoist():
-    s3_obj = S3.get_object(Bucket=BUCKET, Key=KEY)
-    config = json.loads(s3_obj['Body'].read())
-    body = app.current_request.json_body
+def exec_todoist(config, body):
     entity = body2entity(body, config)
 
-    if not entity:
+    if not entity['project_name']:
         print('There is no project matched project_id {}'.format(entity['project_id']))
         return {'result': 'ok'}
 
@@ -63,14 +58,23 @@ def todoist():
 
     # Toggl action (only if needed)
     def accessToggl(path):
-        return requests.get(TOGGL_API_URL+path, auth=(config['toggl']['api_token'], 'api_token'))
+        return requests.get(TOGGL_API_URL + path, auth=(config['toggl']['api_token'], 'api_token'))
 
     if entity['event'] != 'item:completed':
-        return {'result': 'ok'}
+        return True
     current_entry = accessToggl('/time_entries/current').json()['data']
     if not current_entry or current_entry['description'] != entity['content']:
-        return {'result': 'ok'}
+        return True
 
     accessToggl('/time_entries/{}/stop'.format(current_entry['id']))
 
-    return {'result': 'ok'}
+    return True
+
+
+@app.route('/todoist', methods=['POST'])
+def todoist():
+    s3_obj = S3.get_object(Bucket=BUCKET, Key=KEY)
+    config = json.loads(s3_obj['Body'].read())
+    body = app.current_request.json_body
+
+    return {'is_success': exec_todoist(config, body)}
