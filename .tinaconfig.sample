@@ -7,6 +7,9 @@
     "toggl": {
         "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
     },
+    "todoist": {
+        "api_token": "yyyyyyyyyyyyyyyyyyyyyyyyyyy"
+    },
     "message_format_by_id": {
         "12345678": "Specail Task!!!"
     },
