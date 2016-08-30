@@ -47,6 +47,7 @@ def exec_todoist(config, body):
     payload = {
         "text": special_message or config['message_format_by_event'][entity['event']].format(**entity),
         "username": u"TINA",
+        "icon_emoji": config['slack']['icon_emoji'],
         "icon_url": config['slack']['icon_url']
     }
 
