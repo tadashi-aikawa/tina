@@ -2,10 +2,12 @@
     "slack": {
         "url": "https://slack-incoming-webhook-url",
         "icon_emoji": ":hoge:",
-        "icon_url": "https://slack-user-icon"
+        "icon_url": "https://slack-user-icon",
+        "mention": "yourname"
     },
     "toggl": {
-        "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "workspace": "7777777"
     },
     "todoist": {
         "api_token": "yyyyyyyyyyyyyyyyyyyyyyyyyyy"

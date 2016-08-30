@@ -30,7 +30,8 @@ def notify_slack(message, config):
         "text": message,
         "username": u"TINA",
         "icon_emoji": config['slack']['icon_emoji'],
-        "icon_url": config['slack']['icon_url']
+        "icon_url": config['slack']['icon_url'],
+        "link_names": 1
     }
     r = requests.post(config['slack']['url'], data=json.dumps(payload, ensure_ascii=False).encode('utf8'))
     # for debug
@@ -50,8 +51,10 @@ def exec_remind(body, config):
         "resource_types": '["items"]'
     })
     item = py_.find(r.json()['items'], lambda x: str(x['id']) == entity['id'])
-    r = notify_slack(u"もうすぐ *{}* の時間だよ".format(item['content']), config)
-
+    r = notify_slack(
+        u"@{}\n もうすぐ *{}* の時間だよ".format(config['slack']['mention'], item['content']),
+        config
+    )
 
 def exec_todoist(config, body):
     if body['event_name'] == 'reminder:fired':
