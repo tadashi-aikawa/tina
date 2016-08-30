@@ -1,3 +1,4 @@
 chalice
 requests
 boto3
+pydash
