@@ -54,8 +54,9 @@ def fetch_next_task(config):
     def equal_now_day(utcstr):
         if not utcstr:
             return False
-        x = parser.parse(utcstr).astimezone(timezone('Asia/Tokyo'))
-        return x.day == datetime.now().day
+        x = parser.parse(utcstr).astimezone(timezone(config['timezone']))
+        now = datetime.now(timezone(config['timezone']))
+        return x.day == now.day
 
     return py_(r.json()['items']) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
