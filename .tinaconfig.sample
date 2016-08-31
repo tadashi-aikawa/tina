@@ -19,6 +19,7 @@
         "item:added": ":new: *{content}* - `{project_name}`",
         "item:completed": ":heavy_check_mark: *{content}* - `{project_name}`"
     },
+    "next_message_format": "      => 次は  *{content}* - `{project_name}` だよ",
     "project_by_id": {
         "123456789": {
             "name": "Project name"

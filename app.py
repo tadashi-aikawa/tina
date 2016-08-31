@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import json
+from dateutil import parser
+from datetime import datetime
 
 import boto3
 import requests
 from pydash import py_
 from chalice import Chalice
+from pytz import timezone
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -41,6 +44,26 @@ def notify_slack(message, config):
     return r
 
 
+def fetch_next_task(config):
+    r = requests.post(TODOIST_API_URL + '/sync', data={
+        "token": config['todoist']['api_token'],
+        "sync_token": "*",
+        "resource_types": '["items"]'
+    })
+
+    def equal_now_day(utcstr):
+        if not utcstr:
+            return False
+        x = parser.parse(utcstr).astimezone(timezone('Asia/Tokyo'))
+        return x.day == datetime.now().day
+
+    return py_(r.json()['items']) \
+        .filter(lambda x: equal_now_day(x['due_date_utc'])) \
+        .sort_by('day_order') \
+        .find(lambda x: str(x['project_id']) in config['project_by_id'].keys()) \
+        .value()
+
+
 def exec_remind(body, config):
     entity = {
         "id": str(body['event_data']['item_id'])
@@ -56,14 +79,61 @@ def exec_remind(body, config):
         config
     )
 
+    return True
+
+
+def exec_completed(body, config):
+    next_task = fetch_next_task(config)
+
+    project_id = str(body['event_data']['project_id'])
+    project = config['project_by_id'].get(project_id)
+    entity = {
+        "event": body['event_name'],
+        "id": str(body['event_data']['id']),
+        "project_id": project_id,
+        "project_name": project and project.get('name'),
+        "content": body['event_data']['content']
+    }
+
+    if not entity['project_name']:
+        print('There is no project matched project_id {}'.format(entity['project_id']))
+        return True
+
+    next_project_id = str(next_task['project_id'])
+    next_project = config['project_by_id'].get(next_project_id)
+    next_item = {
+        "project_id": next_project_id,
+        "project_name": next_project and next_project.get('name'),
+        "content": next_task['content']
+    }
+
+    message = (
+        config['message_format_by_id'].get(entity['id']) or
+        config['message_format_by_event'][entity['event']].format(**entity)
+    ) + '\n' + config['next_message_format'].format(**next_item)
+    r = notify_slack(message, config)
+
+    # Toggl action
+    def accessToggl(path):
+        return requests.get(TOGGL_API_URL + path, auth=(config['toggl']['api_token'], 'api_token'))
+
+    current_entry = accessToggl('/time_entries/current').json()['data']
+    if not current_entry or current_entry['description'] != entity['content']:
+        return True
+
+    accessToggl('/time_entries/{}/stop'.format(current_entry['id']))
+    return True
+
+
 def exec_todoist(config, body):
     if body['event_name'] == 'reminder:fired':
-        exec_remind(body, config)
-        return True
+        return exec_remind(body, config)
+    elif body['event_name'] == 'item:completed':
+        return exec_completed(body, config)
     else:
         project_id = str(body['event_data']['project_id'])
         project = config['project_by_id'].get(project_id)
-        entity =  {
+        entity = {
             "event": body['event_name'],
             "id": str(body['event_data']['id']),
             "project_id": project_id,
@@ -75,22 +145,7 @@ def exec_todoist(config, body):
             print('There is no project matched project_id {}'.format(entity['project_id']))
             return True
 
-        special_message = config['message_format_by_id'].get(entity['id'])
-        r = notify_slack(special_message or config['message_format_by_event'][entity['event']].format(**entity),
-                         config)
-
-        # Toggl action (only if needed)
-        def accessToggl(path):
-            return requests.get(TOGGL_API_URL + path, auth=(config['toggl']['api_token'], 'api_token'))
-
-        if entity['event'] != 'item:completed':
-            return True
-        current_entry = accessToggl('/time_entries/current').json()['data']
-        if not current_entry or current_entry['description'] != entity['content']:
-            return True
-
-        accessToggl('/time_entries/{}/stop'.format(current_entry['id']))
-
+        r = notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
         return True
 
 
