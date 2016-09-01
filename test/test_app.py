@@ -23,7 +23,7 @@ def test_reminder_fired():
     body = {
         "event_name": "reminder:fired",
         "event_data": {
-            "item_id": 75549509,
+            "item_id": 73456319,
             "id": 30228632
         }
     }
@@ -32,4 +32,5 @@ def test_reminder_fired():
         config = json.load(f)
     app.exec_todoist(config, body)
 
+test()
 test_reminder_fired()

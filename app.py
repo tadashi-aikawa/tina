@@ -32,8 +32,8 @@ def notify_slack(message, config):
     payload = {
         "text": message,
         "username": u"TINA",
-        "icon_emoji": config['slack']['icon_emoji'],
-        "icon_url": config['slack']['icon_url'],
+        "icon_emoji": config['slack'].get('icon_emoji'),
+        "icon_url": config['slack'].get('icon_url'),
         "link_names": 1
     }
     r = requests.post(config['slack']['url'], data=json.dumps(payload, ensure_ascii=False).encode('utf8'))
