@@ -56,7 +56,7 @@ def fetch_next_task(config):
             return False
         x = parser.parse(utcstr).astimezone(timezone(config['timezone']))
         now = datetime.now(timezone(config['timezone']))
-        return x.day == now.day
+        return x.date() == now.date()
 
     return py_(r.json()['items']) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
@@ -84,8 +84,6 @@ def exec_remind(body, config):
 
 
 def exec_completed(body, config):
-    next_task = fetch_next_task(config)
-
     project_id = str(body['event_data']['project_id'])
     project = config['project_by_id'].get(project_id)
     entity = {
@@ -100,6 +98,7 @@ def exec_completed(body, config):
         print('There is no project matched project_id {}'.format(entity['project_id']))
         return True
 
+    next_task = fetch_next_task(config)
     next_project_id = str(next_task['project_id'])
     next_project = config['project_by_id'].get(next_project_id)
     next_item = {
