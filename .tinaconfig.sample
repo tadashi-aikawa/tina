@@ -4,7 +4,8 @@
         "url": "https://slack-incoming-webhook-url",
         "icon_emoji": ":hoge:",
         "icon_url": "https://slack-user-icon",
-        "mention": "yourname"
+        "mention": "yourname",
+        "channel": "#yourchannel"
     },
     "toggl": {
         "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx",
