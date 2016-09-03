@@ -36,7 +36,11 @@ See [Setting up and Using Slack Webhooks - YouTube](https://www.youtube.com/watc
 
 ### Upload `.tinaconfig` to AWS S3
 
-upload S3.
+For example
+
+```
+$ aws s3 cp .tinaconfig s3://mamansoft-tina/
+```
 
 ### Edit S3 parameters in `app.py`
 
