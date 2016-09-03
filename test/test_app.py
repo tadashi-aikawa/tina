@@ -8,7 +8,7 @@ def test():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": 75549509,
+            "id": 76296059,
             "content": u'TINA テスト',
             "project_id": 166337596
         }
@@ -33,4 +33,3 @@ def test_reminder_fired():
     app.exec_todoist(config, body)
 
 test()
-test_reminder_fired()

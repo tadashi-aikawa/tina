@@ -95,6 +95,12 @@ def exec_completed(body, config):
         "content": body['event_data']['content']
     }
 
+    special_event = py_.find(config['special_events'], lambda x: x['id'] == entity['id'])
+    if special_event:
+        # TODO: Create independent function
+        notify_slack(py_.sample(special_event['messages']), config)
+        return True
+
     if not entity['project_name']:
         print('There is no project matched project_id {}'.format(entity['project_id']))
         return True
@@ -108,10 +114,8 @@ def exec_completed(body, config):
         "content": next_task['content']
     }
 
-    message = (
-        config['message_format_by_id'].get(entity['id']) or
-        config['message_format_by_event'][entity['event']].format(**entity)
-    ) + '\n' + config['next_message_format'].format(**next_item)
+    message = config['message_format_by_event'][entity['event']].format(**entity) \
+              + '\n' + config['next_message_format'].format(**next_item)
     r = notify_slack(message, config)
 
     # Toggl action
