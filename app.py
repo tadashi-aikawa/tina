@@ -45,13 +45,7 @@ def notify_slack(message, config):
     return r
 
 
-def fetch_next_task(config):
-    r = requests.post(TODOIST_API_URL + '/sync', data={
-        "token": config['todoist']['api_token'],
-        "sync_token": "*",
-        "resource_types": '["items"]'
-    })
-
+def fetch_next_item(config):
     def equal_now_day(utcstr):
         if not utcstr:
             return False
@@ -59,11 +53,27 @@ def fetch_next_task(config):
         now = datetime.now(timezone(config['timezone']))
         return x.date() == now.date()
 
-    return py_(r.json()['items']) \
+    r = requests.post(TODOIST_API_URL + '/sync', data={
+        "token": config['todoist']['api_token'],
+        "sync_token": "*",
+        "resource_types": '["items"]'
+    })
+
+    next_task = py_(r.json()['items']) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
         .find(lambda x: str(x['project_id']) in config['project_by_id'].keys()) \
         .value()
+    if not next_task:
+        return None
+
+    next_project_id = str(next_task['project_id'])
+    next_project = config['project_by_id'].get(next_project_id)
+    return {
+        "project_id": next_project_id,
+        "project_name": next_project and next_project.get('name'),
+        "content": next_task['content']
+    }
 
 
 def exec_remind(body, config):
@@ -105,17 +115,9 @@ def exec_completed(body, config):
         print('There is no project matched project_id {}'.format(entity['project_id']))
         return True
 
-    next_task = fetch_next_task(config)
-    next_project_id = str(next_task['project_id'])
-    next_project = config['project_by_id'].get(next_project_id)
-    next_item = {
-        "project_id": next_project_id,
-        "project_name": next_project and next_project.get('name'),
-        "content": next_task['content']
-    }
-
-    message = config['message_format_by_event'][entity['event']].format(**entity) \
-              + '\n' + config['next_message_format'].format(**next_item)
+    next_item = fetch_next_item(config)
+    next_message = config['next_message_format'].format(**next_item) if next_item is not None else ''
+    message = config['message_format_by_event'][entity['event']].format(**entity) + '\n' + next_message
     r = notify_slack(message, config)
 
     # Toggl action
