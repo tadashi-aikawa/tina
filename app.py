@@ -25,7 +25,7 @@ app.debug = True
 
 @app.route('/ping')
 def ping():
-    return {'result': 'ok'}
+    return {'result': 'I am TINA♥'}
 
 
 def notify_slack(message, config):
