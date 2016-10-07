@@ -91,4 +91,3 @@ ENV/
 # TINA only
 .tinaconfig
 .idea
-.chalice/policy.json

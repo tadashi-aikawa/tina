@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17", 
+  "Statement": [
+    {
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "*"
+      ],
+      "Effect": "Allow",
+      "Sid": "44672fce0f634184a414e7d4e136310e"
+    },
+    {
+      "Action": [
+        "logs:CreateLogGroup", 
+        "logs:CreateLogStream", 
+        "logs:PutLogEvents"
+      ], 
+      "Resource": "arn:aws:logs:*:*:*", 
+      "Effect": "Allow"
+    }
+  ]
+}
