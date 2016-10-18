@@ -16,6 +16,7 @@ BUCKET = 'mamansoft-tina'
 KEY = '.tinaconfig'
 
 TOGGL_API_URL = 'https://www.toggl.com/api/v8'
+TOGGL_REPORT_API_URL = 'https://www.toggl.com/reports/api/v2'
 TODOIST_API_URL = 'https://todoist.com/API/v7'
 
 S3 = boto3.client('s3', region_name=REGION)
@@ -94,6 +95,39 @@ def exec_remind(body, config):
     return True
 
 
+def create_daily_report(config):
+    now = datetime.now(timezone(config['timezone']))
+
+    elasped_tasks = access_toggl(
+        '/details?workspace_id={}&since={}&user_agent=tina'.format(
+            config['toggl']['workspace'], now.strftime('%Y-%m-%d')
+        ),
+        config['toggl']['api_token'],
+        True
+    ).json()['data']
+
+    def to_project_name(toggl_project_id):
+        p = py_.find(config["project_by_id"], lambda x: x.get("toggl_id") == toggl_project_id)
+        return p["name"] if p else "No Project"
+
+    return py_(elasped_tasks) \
+        .group_by("description") \
+        .map_values(lambda xs: {
+            "task": xs[0]["description"],
+            "project_id": xs[0]["pid"],
+            "project_name": to_project_name(str(xs[0]["pid"])),
+            "elapsed": py_.sum(xs, "dur") / 1000 / 60
+        }) \
+        .filter("task") \
+        .sort_by(reverse=True) \
+        .value()
+
+
+def access_toggl(path, api_token, is_report=False):
+    url = TOGGL_REPORT_API_URL if is_report else TOGGL_API_URL
+    return requests.get(url + path, auth=(api_token, 'api_token'))
+
+
 def exec_completed(body, config):
     project_id = str(body['event_data']['project_id'])
     project = config['project_by_id'].get(project_id)
@@ -109,6 +143,14 @@ def exec_completed(body, config):
     if special_event:
         # TODO: Create independent function
         notify_slack(py_.sample(special_event['messages']), config)
+        if special_event == config['special_events']['leave-work']:
+            notify_slack(
+                "\n".join(py_.map(
+                        create_daily_report(config),
+                        lambda x: u":ballot_box_with_check: {task} [{elapsed}分] `{project_name}`".format(**x)
+                )),
+                config
+            )
         return True
 
     if not entity['project_name']:
@@ -121,14 +163,11 @@ def exec_completed(body, config):
     r = notify_slack(message, config)
 
     # Toggl action
-    def accessToggl(path):
-        return requests.get(TOGGL_API_URL + path, auth=(config['toggl']['api_token'], 'api_token'))
-
-    current_entry = accessToggl('/time_entries/current').json()['data']
+    current_entry = access_toggl('/time_entries/current', config['toggl']['api_token']).json()['data']
     if not current_entry or current_entry['description'] != entity['content']:
         return True
 
-    accessToggl('/time_entries/{}/stop'.format(current_entry['id']))
+    access_toggl('/time_entries/{}/stop'.format(current_entry['id']), config['toggl']['api_token'])
     return True
 
 
