@@ -8,7 +8,7 @@ import boto3
 import requests
 from pydash import py_
 from chalice import Chalice
-from pytz import timezone
+from pytz import timezone, utc
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -98,6 +98,7 @@ def exec_remind(body, config):
 def create_daily_report(config):
     now = datetime.now(timezone(config['timezone']))
 
+    # toggl
     elasped_tasks = access_toggl(
         '/details?workspace_id={}&since={}&user_agent=tina'.format(
             config['toggl']['workspace'], now.strftime('%Y-%m-%d')
@@ -105,6 +106,17 @@ def create_daily_report(config):
         config['toggl']['api_token'],
         True
     ).json()['data']
+
+    # todoist
+    r = requests.post(TODOIST_API_URL + '/activity/get', data={
+        "token": config['todoist']['api_token'],
+        "since": now.replace(hour=0, minute=0, second=0).astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
+        "limit": 100
+    })
+    complete_task_names = py_(r.json()) \
+        .filter(lambda x: x['event_type'] == 'completed') \
+        .map('extra_data.content') \
+        .value()
 
     def to_project_name(toggl_project_id):
         p = py_.find(config["project_by_id"], lambda x: x.get("toggl_id") == toggl_project_id)
@@ -116,7 +128,8 @@ def create_daily_report(config):
             "task": xs[0]["description"],
             "project_id": xs[0]["pid"],
             "project_name": to_project_name(str(xs[0]["pid"])),
-            "elapsed": py_.sum(xs, "dur") / 1000 / 60
+            "elapsed": py_.sum(xs, "dur") / 1000 / 60,
+            "status": "completed" if xs[0]["description"] in complete_task_names else "not_completed"
         }) \
         .filter("task") \
         .sort_by(reverse=True) \
@@ -147,7 +160,7 @@ def exec_completed(body, config):
             notify_slack(
                 "\n".join(py_.map(
                         create_daily_report(config),
-                        lambda x: u":ballot_box_with_check: `{elapsed:3}分` {task} - `{project_name}`".format(**x)
+                        lambda x: config["daily_report_format_by_status"][x["status"]].format(**x)
                 )),
                 config
             )
