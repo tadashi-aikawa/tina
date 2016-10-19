@@ -147,7 +147,7 @@ def exec_completed(body, config):
             notify_slack(
                 "\n".join(py_.map(
                         create_daily_report(config),
-                        lambda x: u":ballot_box_with_check: {task} [{elapsed}分] `{project_name}`".format(**x)
+                        lambda x: u":ballot_box_with_check: `{elapsed:3}分` {task} - `{project_name}`".format(**x)
                 )),
                 config
             )
