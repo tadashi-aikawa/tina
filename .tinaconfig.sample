@@ -1,21 +1,63 @@
 {
+    "timezone": "Asia/Dhaka",
     "slack": {
         "url": "https://slack-incoming-webhook-url",
-        "icon_url": "https://slack-user-icon"
+        "icon_emoji": ":hoge:",
+        "icon_url": "https://slack-user-icon",
+        "mention": "yourname",
+        "channel": "#yourchannel"
     },
     "toggl": {
-        "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "workspace": "7777777"
     },
-    "message_format_by_id": {
-        "12345678": "Specail Task!!!"
+    "todoist": {
+        "api_token": "yyyyyyyyyyyyyyyyyyyyyyyyyyy"
+    },
+    "special_events": {
+      "attendance": {
+        "id": "xxxxx",
+        "messages": [
+          "Good morining!"
+        ]
+      },
+      "launch-start": {
+        "id": "xxxxx",
+        "messages": [
+          "Have a nice launch!",
+          "What do you want to eat?"
+        ]
+      },
+      "launch-end": {
+        "id": "xxxxx",
+        "messages": [":fb-sad:"]
+      },
+      "must-task-completed": {
+        "id": "xxxxx",
+        "messages": ["Yes! you can back to home!!"]
+      },
+      "leave-work": {
+        "id": "xxxxx",
+        "messages": [
+          "Bye!!",
+          "Have a nice dinner!"
+        ]
+      }
     },
     "message_format_by_event": {
         "item:added": ":new: *{content}* - `{project_name}`",
+        "item:deleted": ":wastebasket: *{content}* - `{project_name}`",
         "item:completed": ":heavy_check_mark: *{content}* - `{project_name}`"
+    },
+    "next_message_format": "      => 次は  *{content}* - `{project_name}` だよ",
+    "daily_report_format_by_status": {
+      "completed": ":white_check_mark: `{elapsed:3}分` {task} - `{project_name}`",
+      "not_completed": ":ballot_box_with_check: `{elapsed:3}分` {task} - `{project_name}`"
     },
     "project_by_id": {
         "123456789": {
-            "name": "Project name"
+            "name": "Project name",
+            "toggl_id": "12345678"
         },
         "012345678": {
             "name": "Project name"
