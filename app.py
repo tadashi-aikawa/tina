@@ -123,7 +123,7 @@ def create_daily_report(config):
         return p["name"] if p else "No Project"
 
     return py_(elasped_tasks) \
-        .group_by("description") \
+        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
         .map_values(lambda xs: {
             "task": xs[0]["description"],
             "project_id": xs[0]["pid"],
