@@ -29,6 +29,15 @@ def ping():
     return {'result': 'I am TINA♥'}
 
 
+# ------------------------
+# post/get
+# ------------------------
+
+def access_toggl(path, api_token, is_report=False):
+    url = TOGGL_REPORT_API_URL if is_report else TOGGL_API_URL
+    return requests.get(url + path, auth=(api_token, 'api_token'))
+
+
 def notify_slack(message, config):
     payload = {
         "text": message,
@@ -46,6 +55,42 @@ def notify_slack(message, config):
     return r
 
 
+def fetch_all_task(todoist_token):
+    return requests.get(TODOIST_API_URL + '/sync', data={
+        "token": todoist_token,
+        "sync_token": "*",
+        "resource_types": '["items"]'
+    }).json()['items']
+
+
+def fetch_activities(todoist_token, since):
+    return requests.get(TODOIST_API_URL + '/activity/get', data={
+        "token": todoist_token,
+        "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
+        "limit": 100
+    }).json()
+
+
+# ------------------------
+# parse
+# ------------------------
+
+def to_status(toggl_task_name, complete_task_names):
+    if toggl_task_name in complete_task_names:
+        return "task_completed"
+    else:
+        return "task_not_completed"
+
+
+def to_project_name(project_by_id, toggl_project_id):
+    p = py_.find(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
+    return p["name"] if p else "No Project"
+
+
+# ------------------------
+# utility
+# ------------------------
+
 def fetch_next_item(config):
     def equal_now_day(utcstr):
         if not utcstr:
@@ -54,13 +99,7 @@ def fetch_next_item(config):
         now = datetime.now(timezone(config['timezone']))
         return x.date() == now.date()
 
-    r = requests.post(TODOIST_API_URL + '/sync', data={
-        "token": config['todoist']['api_token'],
-        "sync_token": "*",
-        "resource_types": '["items"]'
-    })
-
-    next_task = py_(r.json()['items']) \
+    next_task = py_(fetch_all_task(config['todoist']['api_token'])) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
         .find(lambda x: str(x['project_id']) in config['project_by_id'].keys()) \
@@ -76,6 +115,43 @@ def fetch_next_item(config):
         "content": next_task['content']
     }
 
+
+def create_daily_report(config):
+    now = datetime.now(timezone(config['timezone']))
+
+    # toggl
+    elasped_tasks = access_toggl(
+        '/details?workspace_id={}&since={}&user_agent=tina'.format(
+            config['toggl']['workspace'], now.strftime('%Y-%m-%d')
+        ),
+        config['toggl']['api_token'],
+        True
+    ).json()['data']
+
+    # todoist
+    activities = fetch_activities(config['todoist']['api_token'], now.replace(hour=0, minute=0, second=0))
+    complete_task_names = py_(activities) \
+        .filter(lambda x: x['event_type'] == 'completed') \
+        .map('extra_data.content') \
+        .value()
+
+    return py_(elasped_tasks) \
+        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
+        .map_values(lambda xs: {
+        "task": xs[0]["description"],
+        "project_id": xs[0]["pid"],
+        "project_name": to_project_name(config["project_by_id"], str(xs[0]["pid"])),
+        "elapsed": py_.sum(xs, "dur") / 1000 / 60,
+        "status": to_status(xs[0]["description"], complete_task_names)
+    }) \
+        .filter("task") \
+        .sort_by(reverse=True) \
+        .value()
+
+
+# ------------------------
+# exec
+# ------------------------
 
 def exec_remind(body, config):
     entity = {
@@ -93,52 +169,6 @@ def exec_remind(body, config):
     )
 
     return True
-
-
-def create_daily_report(config):
-    now = datetime.now(timezone(config['timezone']))
-
-    # toggl
-    elasped_tasks = access_toggl(
-        '/details?workspace_id={}&since={}&user_agent=tina'.format(
-            config['toggl']['workspace'], now.strftime('%Y-%m-%d')
-        ),
-        config['toggl']['api_token'],
-        True
-    ).json()['data']
-
-    # todoist
-    r = requests.post(TODOIST_API_URL + '/activity/get', data={
-        "token": config['todoist']['api_token'],
-        "since": now.replace(hour=0, minute=0, second=0).astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
-        "limit": 100
-    })
-    complete_task_names = py_(r.json()) \
-        .filter(lambda x: x['event_type'] == 'completed') \
-        .map('extra_data.content') \
-        .value()
-
-    def to_project_name(toggl_project_id):
-        p = py_.find(config["project_by_id"], lambda x: x.get("toggl_id") == toggl_project_id)
-        return p["name"] if p else "No Project"
-
-    return py_(elasped_tasks) \
-        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
-        .map_values(lambda xs: {
-            "task": xs[0]["description"],
-            "project_id": xs[0]["pid"],
-            "project_name": to_project_name(str(xs[0]["pid"])),
-            "elapsed": py_.sum(xs, "dur") / 1000 / 60,
-            "status": "completed" if xs[0]["description"] in complete_task_names else "not_completed"
-        }) \
-        .filter("task") \
-        .sort_by(reverse=True) \
-        .value()
-
-
-def access_toggl(path, api_token, is_report=False):
-    url = TOGGL_REPORT_API_URL if is_report else TOGGL_API_URL
-    return requests.get(url + path, auth=(api_token, 'api_token'))
 
 
 def exec_completed(body, config):
@@ -159,8 +189,8 @@ def exec_completed(body, config):
         if special_event == config['special_events']['leave-work']:
             notify_slack(
                 "\n".join(py_.map(
-                        create_daily_report(config),
-                        lambda x: config["daily_report_format_by_status"][x["status"]].format(**x)
+                    create_daily_report(config),
+                    lambda x: config["daily_report_format_by_status"][x["status"]].format(**x)
                 )),
                 config
             )
