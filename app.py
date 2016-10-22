@@ -75,17 +75,35 @@ def fetch_activities(todoist_token, since):
 # parse
 # ------------------------
 
-def to_status(toggl_task_name, complete_task_names):
-    if toggl_task_name in complete_task_names:
-        return "task_completed"
-    else:
-        return "task_not_completed"
+def to_project_id(project_by_id, toggl_project_id):
+    return py_.find_key(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
 
 
 def to_project_name(project_by_id, toggl_project_id):
     p = py_.find(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
     return p["name"] if p else "No Project"
 
+
+def to_status(task_pid, task_name, complete_tasks, todoist_tasks):
+    def to_identify(id, name):
+        return u"{}{}".format(id, name)
+
+    complete_task_identifies = py_.map(
+        complete_tasks,
+        lambda x: to_identify(x['parent_project_id'], x['extra_data']['content'])
+    )
+    todoist_task_identifies = py_.map(
+        todoist_tasks,
+        lambda x: to_identify(x['project_id'], x['content'])
+    )
+    target = to_identify(task_pid, task_name)
+
+    if target in complete_task_identifies:
+        return "task_completed"
+    elif target in todoist_task_identifies:
+        return "task_not_completed"
+    else:
+        return "interrupted"
 
 # ------------------------
 # utility
@@ -130,20 +148,25 @@ def create_daily_report(config):
 
     # todoist
     activities = fetch_activities(config['todoist']['api_token'], now.replace(hour=0, minute=0, second=0))
-    complete_task_names = py_(activities) \
+    complete_tasks = py_(activities) \
         .filter(lambda x: x['event_type'] == 'completed') \
-        .map('extra_data.content') \
         .value()
+    todoist_tasks = fetch_all_task(config['todoist']['api_token'])
 
     return py_(elasped_tasks) \
         .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
         .map_values(lambda xs: {
-        "task": xs[0]["description"],
-        "project_id": xs[0]["pid"],
-        "project_name": to_project_name(config["project_by_id"], str(xs[0]["pid"])),
-        "elapsed": py_.sum(xs, "dur") / 1000 / 60,
-        "status": to_status(xs[0]["description"], complete_task_names)
-    }) \
+            "task": xs[0]["description"],
+            "project_id": xs[0]["pid"],
+            "project_name": to_project_name(config["project_by_id"], str(xs[0]["pid"])),
+            "elapsed": py_.sum(xs, "dur") / 1000 / 60,
+            "status": to_status(
+                to_project_id(config["project_by_id"], str(xs[0]["pid"])),
+                xs[0]["description"],
+                complete_tasks,
+                todoist_tasks
+            )
+        }) \
         .filter("task") \
         .sort_by(reverse=True) \
         .value()
