@@ -15,10 +15,10 @@
         "api_token": "yyyyyyyyyyyyyyyyyyyyyyyyyyy"
     },
     "special_events": {
-      "attendance": {
+      "start-wark": {
         "id": "xxxxx",
         "messages": [
-          "Good morining!"
+          "Let's work!"
         ]
       },
       "launch-start": {
