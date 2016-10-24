@@ -5,11 +5,12 @@ import app
 
 WORK_END_TASK = 73847457
 
+
 def test():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": WORK_END_TASK,
+            "id": 85570464,
             "content": u'TINA テスト',
             "labels": [652234],
             "project_id": 156051149
@@ -33,5 +34,6 @@ def test_reminder_fired():
     with open('../.tinaconfig') as f:
         config = json.load(f)
     app.exec_todoist(config, body)
+
 
 test()
