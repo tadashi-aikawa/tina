@@ -95,7 +95,7 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks):
     )
     todoist_task_identifies = py_.map(
         uncompleted_tasks,
-        lambda x: to_identify(x['project_id'], x['content'])
+        lambda x: to_identify(x['project_id'], x['name'])
     )
     target = to_identify(task_pid, task_name)
 
@@ -143,7 +143,7 @@ def create_daily_report(config):
     now = datetime.now(timezone(config['timezone']))
 
     # toggl
-    elasped_tasks = access_toggl(
+    toggl_reports = access_toggl(
         '/details?workspace_id={}&since={}&user_agent=tina'.format(
             config['toggl']['workspace'], now.strftime('%Y-%m-%d')
         ),
@@ -162,27 +162,45 @@ def create_daily_report(config):
             "private": config['label_by_name']['private']['name'] in x["content"].split(" @")[1:]
         }
     )
-    uncompleted_todoist_tasks = fetch_uncompleted_tasks(config['todoist']['api_token'])
+    uncompleted_todoist_tasks = py_.map(
+        fetch_uncompleted_tasks(config['todoist']['api_token']),
+        lambda x: {
+            "project_id": x["project_id"],
+            "id": x["id"],
+            "name": x["content"],
+            "label_ids": x["labels"],
+            "private": config['label_by_name']['private']['id'] in x["labels"]
+        }
+    )
 
-    return py_(elasped_tasks) \
-        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
-        .map_values(lambda xs: {
-            "task": xs[0]["description"],
-            "project_id": to_project_id(config["project_by_id"], xs[0]["pid"]),
-            "project_name": to_project_name(config["project_by_id"], xs[0]["pid"]),
-            "elapsed": py_.sum(xs, "dur") / 1000 / 60,
+    def find_todoist_task(project_id, name):
+        return py_.find(
+            complete_todoist_tasks + uncompleted_todoist_tasks,
+            lambda t: str(project_id) == str(t["project_id"]) and name == t["name"]
+        )
+
+    def reports2task(reports):
+        r = reports[0]
+        project_id = to_project_id(config["project_by_id"], r["pid"])
+        project_name = to_project_name(config["project_by_id"], r["pid"])
+        todoist_task = find_todoist_task(project_id, r["description"])
+        return {
+            "name": ":secret:" if todoist_task and todoist_task["private"] else r["description"],
+            "project_id": project_id,
+            "project_name": project_name,
+            "elapsed": py_.sum(reports, "dur") / 1000 / 60,
             "status": to_status(
-                to_project_id(config["project_by_id"], xs[0]["pid"]),
-                xs[0]["description"],
+                to_project_id(config["project_by_id"], r["pid"]),
+                r["description"],
                 complete_todoist_tasks,
                 uncompleted_todoist_tasks
             )
-        }) \
-        .filter("task") \
-        .reject(lambda x: py_.find(
-            complete_todoist_tasks,
-            lambda c: str(x["project_id"]) == str(c["project_id"]) and x["task"] == c["name"]
-        )["private"]) \
+        }
+
+    return py_(toggl_reports) \
+        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
+        .map_values(reports2task) \
+        .filter("name") \
         .sort_by(reverse=True) \
         .value()
 
