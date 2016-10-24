@@ -55,15 +55,16 @@ def notify_slack(message, config):
     return r
 
 
-def fetch_all_task(todoist_token):
-    return requests.get(TODOIST_API_URL + '/sync', data={
+def fetch_uncompleted_tasks(todoist_token):
+    items = requests.get(TODOIST_API_URL + '/sync', data={
         "token": todoist_token,
         "sync_token": "*",
         "resource_types": '["items"]'
     }).json()['items']
+    return py_.reject(items, "checked")
 
 
-def fetch_completed_task(todoist_token, since):
+def fetch_completed_tasks(todoist_token, since):
     return requests.get(TODOIST_API_URL + '/completed/get_all', data={
         "token": todoist_token,
         "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
@@ -117,7 +118,7 @@ def fetch_next_item(config):
         now = datetime.now(timezone(config['timezone']))
         return x.date() == now.date()
 
-    next_task = py_(fetch_all_task(config['todoist']['api_token'])) \
+    next_task = py_(fetch_uncompleted_tasks(config['todoist']['api_token'])) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
         .find(lambda x: str(x['project_id']) in config['project_by_id'].keys()) \
@@ -152,7 +153,7 @@ def create_daily_report(config):
 
     # todoist
     complete_todoist_tasks = py_.map(
-        fetch_completed_task(config['todoist']['api_token'], now.replace(hour=0, minute=0, second=0)),
+        fetch_completed_tasks(config['todoist']['api_token'], now.replace(hour=0, minute=0, second=0)),
         lambda x: {
             "project_id": x["project_id"],
             "id": x["task_id"],
@@ -161,7 +162,7 @@ def create_daily_report(config):
             "private": config['label_by_name']['private']['name'] in x["content"].split(" @")[1:]
         }
     )
-    uncompleted_todoist_tasks = fetch_all_task(config['todoist']['api_token'])
+    uncompleted_todoist_tasks = fetch_uncompleted_tasks(config['todoist']['api_token'])
 
     return py_(elasped_tasks) \
         .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
@@ -229,7 +230,7 @@ def exec_completed(entity, config):
 
 def exec_todoist(config, body):
     item = body["event_data"] if body['event_name'] != "reminder:fired" else \
-        py_.find(fetch_all_task(config['todoist']['api_token']),
+        py_.find(fetch_uncompleted_tasks(config['todoist']['api_token']),
                  lambda x: x['id'] == body["event_data"]['item_id'])
 
     project_id = str(item['project_id'])
