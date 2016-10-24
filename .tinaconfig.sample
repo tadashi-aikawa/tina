@@ -54,6 +54,13 @@
       "completed": ":white_check_mark: `{elapsed:3}分` {task} - `{project_name}`",
       "not_completed": ":ballot_box_with_check: `{elapsed:3}分` {task} - `{project_name}`"
     },
+    "label_by_name": {
+      "private": {
+        "id": 652233,
+        "name": "Private"
+      }
+    },
+    "secret_name": ":secret:のタスク",
     "project_by_id": {
         "123456789": {
             "name": "Project name",
