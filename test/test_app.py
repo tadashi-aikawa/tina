@@ -3,14 +3,16 @@
 import json
 import app
 
+WORK_END_TASK = 73847457
 
 def test():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": 76296059,
+            "id": WORK_END_TASK,
             "content": u'TINA テスト',
-            "project_id": 166337596
+            "labels": [652234],
+            "project_id": 156051149
         }
     }
 
@@ -23,8 +25,8 @@ def test_reminder_fired():
     body = {
         "event_name": "reminder:fired",
         "event_data": {
-            "item_id": 73456319,
-            "id": 30228632
+            "item_id": 85474444,
+            "id": 33482384
         }
     }
 
