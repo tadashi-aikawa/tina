@@ -55,20 +55,21 @@ def notify_slack(message, config):
     return r
 
 
-def fetch_all_task(todoist_token):
-    return requests.get(TODOIST_API_URL + '/sync', data={
+def fetch_uncompleted_tasks(todoist_token):
+    items = requests.get(TODOIST_API_URL + '/sync', data={
         "token": todoist_token,
         "sync_token": "*",
         "resource_types": '["items"]'
     }).json()['items']
+    return py_.reject(items, "checked")
 
 
-def fetch_activities(todoist_token, since):
-    return requests.get(TODOIST_API_URL + '/activity/get', data={
+def fetch_completed_tasks(todoist_token, since):
+    return requests.get(TODOIST_API_URL + '/completed/get_all', data={
         "token": todoist_token,
         "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
-        "limit": 100
-    }).json()
+        "limit": 50
+    }).json()['items']
 
 
 # ------------------------
@@ -76,25 +77,25 @@ def fetch_activities(todoist_token, since):
 # ------------------------
 
 def to_project_id(project_by_id, toggl_project_id):
-    return py_.find_key(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
+    return py_.find_key(project_by_id, lambda x: x.get("toggl_id") == str(toggl_project_id))
 
 
 def to_project_name(project_by_id, toggl_project_id):
-    p = py_.find(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
+    p = py_.find(project_by_id, lambda x: x.get("toggl_id") == str(toggl_project_id))
     return p["name"] if p else "No Project"
 
 
-def to_status(task_pid, task_name, complete_tasks, todoist_tasks):
+def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks):
     def to_identify(id, name):
         return u"{}{}".format(id, name)
 
     complete_task_identifies = py_.map(
-        complete_tasks,
-        lambda x: to_identify(x['parent_project_id'], x['extra_data']['content'])
+        completed_tasks,
+        lambda x: to_identify(x['project_id'], x['name'])
     )
     todoist_task_identifies = py_.map(
-        todoist_tasks,
-        lambda x: to_identify(x['project_id'], x['content'])
+        uncompleted_tasks,
+        lambda x: to_identify(x['project_id'], x['name'])
     )
     target = to_identify(task_pid, task_name)
 
@@ -117,7 +118,7 @@ def fetch_next_item(config):
         now = datetime.now(timezone(config['timezone']))
         return x.date() == now.date()
 
-    next_task = py_(fetch_all_task(config['todoist']['api_token'])) \
+    next_task = py_(fetch_uncompleted_tasks(config['todoist']['api_token'])) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
         .find(lambda x: str(x['project_id']) in config['project_by_id'].keys()) \
@@ -127,10 +128,14 @@ def fetch_next_item(config):
 
     next_project_id = str(next_task['project_id'])
     next_project = config['project_by_id'].get(next_project_id)
+    labels = next_task['labels']
+    private = config['label_by_name']['private']['id'] in labels
     return {
         "project_id": next_project_id,
         "project_name": next_project and next_project.get('name'),
-        "content": next_task['content']
+        "labels": next_task['labels'],
+        "content": config["secret_name"] if private else next_task['content'],
+        "private": private
     }
 
 
@@ -138,7 +143,7 @@ def create_daily_report(config):
     now = datetime.now(timezone(config['timezone']))
 
     # toggl
-    elasped_tasks = access_toggl(
+    toggl_reports = access_toggl(
         '/details?workspace_id={}&since={}&user_agent=tina'.format(
             config['toggl']['workspace'], now.strftime('%Y-%m-%d')
         ),
@@ -147,27 +152,55 @@ def create_daily_report(config):
     ).json()['data']
 
     # todoist
-    activities = fetch_activities(config['todoist']['api_token'], now.replace(hour=0, minute=0, second=0))
-    complete_tasks = py_(activities) \
-        .filter(lambda x: x['event_type'] == 'completed') \
-        .value()
-    todoist_tasks = fetch_all_task(config['todoist']['api_token'])
+    complete_todoist_tasks = py_.map(
+        fetch_completed_tasks(config['todoist']['api_token'], now.replace(hour=0, minute=0, second=0)),
+        lambda x: {
+            "project_id": x["project_id"],
+            "id": x["task_id"],
+            "name": x["content"].split(" @")[0],
+            "label_names": x["content"].split(" @")[1:],
+            "private": config['label_by_name']['private']['name'] in x["content"].split(" @")[1:]
+        }
+    )
+    uncompleted_todoist_tasks = py_.map(
+        fetch_uncompleted_tasks(config['todoist']['api_token']),
+        lambda x: {
+            "project_id": x["project_id"],
+            "id": x["id"],
+            "name": x["content"],
+            "label_ids": x["labels"],
+            "private": config['label_by_name']['private']['id'] in x["labels"]
+        }
+    )
 
-    return py_(elasped_tasks) \
-        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
-        .map_values(lambda xs: {
-            "task": xs[0]["description"],
-            "project_id": xs[0]["pid"],
-            "project_name": to_project_name(config["project_by_id"], str(xs[0]["pid"])),
-            "elapsed": py_.sum(xs, "dur") / 1000 / 60,
+    def find_todoist_task(project_id, name):
+        return py_.find(
+            complete_todoist_tasks + uncompleted_todoist_tasks,
+            lambda t: str(project_id) == str(t["project_id"]) and name == t["name"]
+        )
+
+    def reports2task(reports):
+        r = reports[0]
+        project_id = to_project_id(config["project_by_id"], r["pid"])
+        project_name = to_project_name(config["project_by_id"], r["pid"])
+        todoist_task = find_todoist_task(project_id, r["description"])
+        return {
+            "name": ":secret:" if todoist_task and todoist_task["private"] else r["description"],
+            "project_id": project_id,
+            "project_name": project_name,
+            "elapsed": py_.sum(reports, "dur") / 1000 / 60,
             "status": to_status(
-                to_project_id(config["project_by_id"], str(xs[0]["pid"])),
-                xs[0]["description"],
-                complete_tasks,
-                todoist_tasks
+                to_project_id(config["project_by_id"], r["pid"]),
+                r["description"],
+                complete_todoist_tasks,
+                uncompleted_todoist_tasks
             )
-        }) \
-        .filter("task") \
+        }
+
+    return py_(toggl_reports) \
+        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
+        .map_values(reports2task) \
+        .filter("name") \
         .sort_by(reverse=True) \
         .value()
 
@@ -176,35 +209,15 @@ def create_daily_report(config):
 # exec
 # ------------------------
 
-def exec_remind(body, config):
-    entity = {
-        "id": str(body['event_data']['item_id'])
-    }
-    r = requests.post(TODOIST_API_URL + '/sync', data={
-        "token": config['todoist']['api_token'],
-        "sync_token": "*",
-        "resource_types": '["items"]'
-    })
-    item = py_.find(r.json()['items'], lambda x: str(x['id']) == entity['id'])
+def exec_remind(entity, config):
     r = notify_slack(
-        u"@{}\n もうすぐ *{}* の時間だよ".format(config['slack']['mention'], item['content']),
+        u"@{}\n もうすぐ *{}* の時間だよ".format(config['slack']['mention'], entity['content']),
         config
     )
-
     return True
 
 
-def exec_completed(body, config):
-    project_id = str(body['event_data']['project_id'])
-    project = config['project_by_id'].get(project_id)
-    entity = {
-        "event": body['event_name'],
-        "id": str(body['event_data']['id']),
-        "project_id": project_id,
-        "project_name": project and project.get('name'),
-        "content": body['event_data']['content']
-    }
-
+def exec_completed(entity, config):
     special_event = py_.find(config['special_events'], lambda x: x['id'] == entity['id'])
     if special_event:
         # TODO: Create independent function
@@ -217,10 +230,6 @@ def exec_completed(body, config):
                 )),
                 config
             )
-        return True
-
-    if not entity['project_name']:
-        print('There is no project matched project_id {}'.format(entity['project_id']))
         return True
 
     next_item = fetch_next_item(config)
@@ -238,25 +247,33 @@ def exec_completed(body, config):
 
 
 def exec_todoist(config, body):
+    item = body["event_data"] if body['event_name'] != "reminder:fired" else \
+        py_.find(fetch_uncompleted_tasks(config['todoist']['api_token']),
+                 lambda x: x['id'] == body["event_data"]['item_id'])
+
+    project_id = str(item['project_id'])
+    project = config['project_by_id'].get(project_id)
+    labels = item['labels']
+    private = config['label_by_name']['private']['id'] in labels
+    entity = {
+        "event": body['event_name'],
+        "id": str(item['id']),
+        "project_id": project_id,
+        "project_name": project and project.get('name'),
+        "labels": labels,
+        "content": config["secret_name"] if private else item['content'],
+        "private": private
+    }
+
+    if not entity['project_name']:
+        print('There is no project matched project_id {}'.format(entity['project_id']))
+        return True
+
     if body['event_name'] == 'reminder:fired':
-        return exec_remind(body, config)
+        return exec_remind(entity, config)
     elif body['event_name'] == 'item:completed':
-        return exec_completed(body, config)
+        return exec_completed(entity, config)
     else:
-        project_id = str(body['event_data']['project_id'])
-        project = config['project_by_id'].get(project_id)
-        entity = {
-            "event": body['event_name'],
-            "id": str(body['event_data']['id']),
-            "project_id": project_id,
-            "project_name": project and project.get('name'),
-            "content": body['event_data']['content']
-        }
-
-        if not entity['project_name']:
-            print('There is no project matched project_id {}'.format(entity['project_id']))
-            return True
-
         r = notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
         return True
 
