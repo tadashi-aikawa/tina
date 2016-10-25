@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import json
+
+import sys
 from dateutil import parser
 from datetime import datetime
 
@@ -72,6 +74,15 @@ def fetch_completed_tasks(todoist_token, since):
     }).json()['items']
 
 
+def fetch_activities(todoist_token, object_event_types, since):
+    return requests.get(TODOIST_API_URL + '/activity/get', data={
+        "token": todoist_token,
+        "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
+        "object_event_types": object_event_types,
+        "limit": 100
+    }).json()
+
+
 # ------------------------
 # parse
 # ------------------------
@@ -85,26 +96,36 @@ def to_project_name(project_by_id, toggl_project_id):
     return p["name"] if p else "No Project"
 
 
-def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks):
+def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupted_tasks):
     def to_identify(id, name):
         return u"{}{}".format(id, name)
 
-    complete_task_identifies = py_.map(
+    completed_task_identifies = py_.map(
         completed_tasks,
         lambda x: to_identify(x['project_id'], x['name'])
     )
-    todoist_task_identifies = py_.map(
+    uncompleted_task_identifies = py_.map(
         uncompleted_tasks,
         lambda x: to_identify(x['project_id'], x['name'])
     )
+    interrupted_task_identifies = py_(interrupted_tasks) \
+        .map(lambda x: py_.find(completed_tasks + uncompleted_tasks, lambda y: x["object_id"] == y["id"])) \
+        .map(lambda x: to_identify(x['project_id'], x['name'])) \
+        .value()
+
     target = to_identify(task_pid, task_name)
 
-    if target in complete_task_identifies:
+    if target in completed_task_identifies and target not in interrupted_task_identifies:
         return "task_completed"
-    elif target in todoist_task_identifies:
+    elif target in uncompleted_task_identifies and target not in interrupted_task_identifies:
         return "task_not_completed"
+    elif target in completed_task_identifies and target in interrupted_task_identifies:
+        return "interrupted_task_completed"
+    elif target in uncompleted_task_identifies and target in interrupted_task_identifies:
+        return "interrupted_task_not_completed"
     else:
-        return "interrupted"
+        # Todoist does not has the task
+        return "interrupted_task_completed"
 
 # ------------------------
 # utility
@@ -159,6 +180,7 @@ def create_daily_report(config):
             "id": x["task_id"],
             "name": x["content"].split(" @")[0],
             "label_names": x["content"].split(" @")[1:],
+            "completed_date": parser.parse(x["completed_date"]),
             "private": config['label_by_name']['private']['name'] in x["content"].split(" @")[1:]
         }
     )
@@ -171,6 +193,13 @@ def create_daily_report(config):
             "label_ids": x["labels"],
             "private": config['label_by_name']['private']['id'] in x["labels"]
         }
+    )
+
+    # Interrupted task
+    work_start_task = py_.find(complete_todoist_tasks, lambda x: str(x["id"]) == config["special_events"]["start-work"]["id"])
+    interrupted_tasks = py_.filter(
+        fetch_activities(config['todoist']['api_token'], '["item:added"]', now.replace(hour=0, minute=0, second=0)),
+        lambda x: parser.parse(x["event_date"]) > work_start_task["completed_date"]
     )
 
     def find_todoist_task(project_id, name):
@@ -193,7 +222,8 @@ def create_daily_report(config):
                 to_project_id(config["project_by_id"], r["pid"]),
                 r["description"],
                 complete_todoist_tasks,
-                uncompleted_todoist_tasks
+                uncompleted_todoist_tasks,
+                interrupted_tasks
             )
         }
 
