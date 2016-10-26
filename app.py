@@ -110,6 +110,7 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
     )
     interrupted_task_identifies = py_(interrupted_tasks) \
         .map(lambda x: py_.find(completed_tasks + uncompleted_tasks, lambda y: x["object_id"] == y["id"])) \
+        .filter() \
         .map(lambda x: to_identify(x['project_id'], x['name'])) \
         .value()
 
