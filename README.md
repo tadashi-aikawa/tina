@@ -3,7 +3,14 @@ TINA
 
 `Todoist/Toggl Intermediate Notification API`
 
-TODO: description
+TINA can Notify slack of following things about in a few seconds.   
+
+* Your todoist events (create, complete, delete, remind)
+* Your next task (when you completes task)
+* Special behavior (work-start, work-end, lunch... etc)
+ 
+TODO: more information
+ 
 
 ## Requirements
 
