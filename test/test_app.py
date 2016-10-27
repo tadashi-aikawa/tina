@@ -3,6 +3,7 @@
 import json
 import app
 
+WORK_BEGIN_TASK = 72824136
 WORK_END_TASK = 73847457
 
 
@@ -10,7 +11,7 @@ def test():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": 85570464,
+            "id": WORK_END_TASK,
             "content": u'TINA テスト',
             "labels": [652234],
             "project_id": 156051149
