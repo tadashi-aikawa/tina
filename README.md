@@ -99,3 +99,10 @@ For example.
         * Branches to build
             * Branch Specifier (blank for 'any'): `${BRANCH_NAME}`
     * Script Path: `Jenkinsfile`
+
+## More
+
+### Todoist
+
+<a class="embedly-card" href="https://todoist.com/">To do list and task manager. Free, easy, online and mobile: Todoist</a>
+<script async src="//cdn.embedly.com/widgets/platform.js" charset="UTF-8"></script>
