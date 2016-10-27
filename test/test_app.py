@@ -11,7 +11,7 @@ def test():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": WORK_END_TASK,
+            "id": WORK_BEGIN_TASK,
             "content": u'TINA テスト',
             "labels": [652234],
             "project_id": 156051149
