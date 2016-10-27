@@ -21,14 +21,14 @@
           "Let's work!"
         ]
       },
-      "launch-start": {
+      "lunch-start": {
         "id": "xxxxx",
         "messages": [
-          "Have a nice launch!",
+          "Have a nice lunch!",
           "What do you want to eat?"
         ]
       },
-      "launch-end": {
+      "lunch-end": {
         "id": "xxxxx",
         "messages": [":fb-sad:"]
       },
