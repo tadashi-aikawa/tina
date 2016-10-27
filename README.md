@@ -9,7 +9,7 @@ TINA can Notify slack of following things about in a few seconds.
 * Your next task (when you completes task)
 * Special behavior (work-start, work-end, lunch... etc)
  
-TODO: write more information
+TODO: Write more information
  
 
 ## Requirements
