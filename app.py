@@ -2,7 +2,6 @@
 
 import json
 
-import sys
 from dateutil import parser
 from datetime import datetime
 
@@ -88,11 +87,11 @@ def fetch_activities(todoist_token, object_event_types, since):
 # ------------------------
 
 def to_project_id(project_by_id, toggl_project_id):
-    return py_.find_key(project_by_id, lambda x: x.get("toggl_id") == str(toggl_project_id))
+    return py_.find_key(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
 
 
 def to_project_name(project_by_id, toggl_project_id):
-    p = py_.find(project_by_id, lambda x: x.get("toggl_id") == str(toggl_project_id))
+    p = py_.find(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
     return p["name"] if p else "No Project"
 
 
@@ -148,8 +147,8 @@ def fetch_next_item(config):
     if not next_task:
         return None
 
-    next_project_id = str(next_task['project_id'])
-    next_project = config['project_by_id'].get(next_project_id)
+    next_project_id = next_task['project_id']
+    next_project = config['project_by_id'].get(str(next_project_id))
     labels = next_task['labels']
     private = config['label_by_name']['private']['id'] in labels
     return {
@@ -197,7 +196,7 @@ def create_daily_report(config):
     )
 
     # Interrupted task
-    work_start_task = py_.find(complete_todoist_tasks, lambda x: str(x["id"]) == config["special_events"]["start-work"]["id"])
+    work_start_task = py_.find(complete_todoist_tasks, lambda x: x["id"] == config["special_events"]["start-work"]["id"])
     interrupted_tasks = py_.filter(
         fetch_activities(config['todoist']['api_token'], '["item:added"]', now.replace(hour=0, minute=0, second=0)),
         lambda x: parser.parse(x["event_date"]) > work_start_task["completed_date"]
@@ -206,7 +205,7 @@ def create_daily_report(config):
     def find_todoist_task(project_id, name):
         return py_.find(
             complete_todoist_tasks + uncompleted_todoist_tasks,
-            lambda t: str(project_id) == str(t["project_id"]) and name == t["name"]
+            lambda t: project_id == t["project_id"] and name == t["name"]
         )
 
     def reports2task(reports):
@@ -282,14 +281,13 @@ def exec_todoist(config, body):
         py_.find(fetch_uncompleted_tasks(config['todoist']['api_token']),
                  lambda x: x['id'] == body["event_data"]['item_id'])
 
-    project_id = str(item['project_id'])
-    project = config['project_by_id'].get(project_id)
+    project = config['project_by_id'].get(str(item['project_id']))
     labels = item['labels']
     private = config['label_by_name']['private']['id'] in labels
     entity = {
         "event": body['event_name'],
-        "id": str(item['id']),
-        "project_id": project_id,
+        "id": item["id"],
+        "project_id": item['project_id'],
         "project_name": project and project.get('name'),
         "labels": labels,
         "content": config["secret_name"] if private else item['content'],

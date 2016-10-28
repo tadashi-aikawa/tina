@@ -9,35 +9,35 @@
     },
     "toggl": {
         "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "workspace": "7777777"
+        "workspace": 7777777
     },
     "todoist": {
         "api_token": "yyyyyyyyyyyyyyyyyyyyyyyyyyy"
     },
     "special_events": {
       "start-wark": {
-        "id": "xxxxx",
+        "id": 11111,
         "messages": [
           "Let's work!"
         ]
       },
       "lunch-start": {
-        "id": "xxxxx",
+        "id": 22222,
         "messages": [
           "Have a nice lunch!",
           "What do you want to eat?"
         ]
       },
       "lunch-end": {
-        "id": "xxxxx",
+        "id": 33333,
         "messages": [":fb-sad:"]
       },
       "must-task-completed": {
-        "id": "xxxxx",
+        "id": 44444,
         "messages": ["Yes! you can back to home!!"]
       },
       "leave-work": {
-        "id": "xxxxx",
+        "id": 55555,
         "messages": [
           "Bye!!",
           "Have a nice dinner!"
@@ -64,7 +64,7 @@
     "project_by_id": {
         "123456789": {
             "name": "Project name",
-            "toggl_id": "12345678"
+            "toggl_id": 12345678
         },
         "012345678": {
             "name": "Project name"
