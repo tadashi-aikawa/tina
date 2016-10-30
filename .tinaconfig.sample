@@ -58,6 +58,10 @@
       "private": {
         "id": 652233,
         "name": "Private"
+      },
+      "meeting": {
+        "id": 657538,
+        "name": "MTG"
       }
     },
     "secret_name": ":secret:のタスク",
