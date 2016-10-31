@@ -153,13 +153,19 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
 # utility
 # ------------------------
 
+
+def minus3h(dt):
+    return dt - timedelta(hours=3)
+
+
 def fetch_next_item(config):
     def equal_now_day(utcstr):
         if not utcstr:
             return False
         x = parser.parse(utcstr).astimezone(timezone(config['timezone']))
         now = datetime.now(timezone(config['timezone']))
-        return x.date() == now.date()
+        # 3:00 - 3:00
+        return minus3h(x).date() == minus3h(now).date()
 
     next_task = py_(fetch_uncompleted_tasks(config['todoist']['api_token'])) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
@@ -188,7 +194,7 @@ def create_daily_report(config):
     # toggl
     toggl_reports = access_toggl(
         '/details?workspace_id={}&since={}&user_agent=tina'.format(
-            config['toggl']['workspace'], now.strftime('%Y-%m-%d')
+            config['toggl']['workspace'], minus3h(now).strftime('%Y-%m-%d')
         ),
         config['toggl']['api_token'],
         True
@@ -196,7 +202,7 @@ def create_daily_report(config):
 
     # todoist
     complete_todoist_tasks = py_.map(
-        fetch_completed_tasks(config['todoist']['api_token'], now.replace(hour=0, minute=0, second=0)),
+        fetch_completed_tasks(config['todoist']['api_token'], minus3h(now).replace(hour=0, minute=0, second=0)),
         lambda x: {
             "project_id": x["project_id"],
             "id": x["task_id"],
@@ -218,9 +224,12 @@ def create_daily_report(config):
     )
 
     # Interrupted task
-    work_start_task = py_.find(complete_todoist_tasks, lambda x: x["id"] == config["special_events"]["start-work"]["id"])
+    work_start_task = py_.find(complete_todoist_tasks,
+                               lambda x: x["id"] == config["special_events"]["start-work"]["id"])
     interrupted_tasks = py_.filter(
-        fetch_activities(config['todoist']['api_token'], '["item:added"]', now.replace(hour=0, minute=0, second=0)),
+        fetch_activities(config['todoist']['api_token'],
+                         '["item:added"]',
+                         minus3h(now).replace(hour=0, minute=0, second=0)),
         lambda x: parser.parse(x["event_date"]) > work_start_task["completed_date"]
     )
 
@@ -273,7 +282,7 @@ def exec_added(entity, config):
     times = re.compile('\d\d:\d\d').findall(entity['content'])
     if times:
         hour, minute = times[0].split(':')
-        begin_time = datetime.now(timezone(config['timezone'])).replace(hour=int(hour), minute=int(minute), second=0)
+        begin_time = minus3h(datetime.now(timezone(config['timezone']))).replace(hour=int(hour), minute=int(minute), second=0)
         r = add_reminder(
             config['todoist']['api_token'],
             entity['id'],
