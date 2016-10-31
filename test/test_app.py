@@ -24,6 +24,22 @@ def test():
     app.exec_todoist(config, body)
 
 
+def test_create():
+    body = {
+        "event_name": "item:added",
+        "event_data": {
+            "id": 8051275,
+            "content": u"てすとのたすく(17:00-18:00)",
+            "project_id": 156051149,
+            "labels": [652234]
+        }
+    }
+
+    with open('../.tinaconfig') as f:
+        config = json.load(f)
+    app.exec_todoist(config, body)
+
+
 def test_reminder_fired():
     body = {
         "event_name": "reminder:fired",
@@ -38,4 +54,4 @@ def test_reminder_fired():
     app.exec_todoist(config, body)
 
 
-test()
+test_create()

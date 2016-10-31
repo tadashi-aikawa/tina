@@ -1,5 +1,6 @@
 {
-    "timezone": "Asia/Dhaka",
+    "timezone": "Asia/Tokyo",
+    "remind_minutes_delta": 10,
     "slack": {
         "url": "https://slack-incoming-webhook-url",
         "icon_emoji": ":hoge:",
