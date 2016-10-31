@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import json
+import re
+import uuid
 
 from dateutil import parser
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import boto3
 import requests
@@ -80,6 +82,26 @@ def fetch_activities(todoist_token, object_event_types, since):
         "object_event_types": object_event_types,
         "limit": 100
     }).json()
+
+
+def add_reminder(todoist_token, item_id, remind_time):
+    commands = [{
+        "type": "reminder_add",
+        "uuid": str(uuid.uuid4()),
+        "temp_id": str(uuid.uuid4()),
+        "args": {
+            "item_id": item_id,
+            "service": "push",
+            "due_date_utc": remind_time.astimezone(utc).strftime('%Y-%m-%dT%H:%M')
+        }
+    }]
+
+    r = requests.get(TODOIST_API_URL + '/sync', data={
+        "token": todoist_token,
+        "commands": json.dumps(commands)
+    })
+
+    return r.ok
 
 
 # ------------------------
@@ -247,6 +269,23 @@ def exec_remind(entity, config):
     return True
 
 
+def exec_added(entity, config):
+    times = re.compile('\d\d:\d\d').findall(entity['content'])
+    if times:
+        hour, minute = times[0].split(':')
+        begin_time = datetime.now(timezone(config['timezone'])).replace(hour=int(hour), minute=int(minute), second=0)
+        r = add_reminder(
+            config['todoist']['api_token'],
+            entity['id'],
+            begin_time - timedelta(minutes=config['remind_minutes_delta'])
+        )
+        if not r:
+            return False
+
+    notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
+    return True
+
+
 def exec_completed(entity, config):
     special_event = py_.find(config['special_events'], lambda x: x['id'] == entity['id'])
     if special_event:
@@ -302,6 +341,8 @@ def exec_todoist(config, body):
         return exec_remind(entity, config)
     elif body['event_name'] == 'item:completed':
         return exec_completed(entity, config)
+    elif body['event_name'] == 'item:added':
+        return exec_added(entity, config)
     else:
         r = notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
         return True
