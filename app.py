@@ -109,11 +109,13 @@ def add_reminder(todoist_token, item_id, remind_time):
 # ------------------------
 
 def to_project_id(project_by_id, toggl_project_id):
-    return py_.find_key(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
+    return py_.find_key(project_by_id,
+                        lambda x: toggl_project_id and x.get("toggl_id") == toggl_project_id)
 
 
 def to_project_name(project_by_id, toggl_project_id):
-    p = py_.find(project_by_id, lambda x: x.get("toggl_id") == toggl_project_id)
+    p = py_.find(project_by_id,
+                 lambda x: toggl_project_id and x.get("toggl_id") == toggl_project_id)
     return p["name"] if p else "No Project"
 
 
