@@ -1,6 +1,8 @@
 TINA
 ====
 
+[![Build Status](http://mamansoft.net:8888/job/TINA-Production-Deploy/badge/icon)](http://mamansoft.net:8888/job/TINA-Production-Deploy/)
+
 `Todoist/Toggl Intermediate Notification API`
 
 TINA can Notify slack of following things about in a few seconds.   
@@ -10,7 +12,7 @@ TINA can Notify slack of following things about in a few seconds.
 * Special behavior (work-start, work-end, lunch... etc)
  
 TODO: Write more information
- 
+
 
 ## Requirements
 
@@ -79,23 +81,24 @@ You must set below environmental values.
 | AWS_SECRET_ACCESS_KEY | x (must be secure!) | o          |
 | AWS_DEFAULT_REGION    | o                   |            |
 
-And create pipeline job.
-
-### Set build parameters
+And build parameters.
 
 |     Name    |         Note         |
 |-------------|----------------------|
 | IMAGE_NAME  | Docker image name    |
-| BRANCH_NAME | Checkout branch name |
 
-### Set pipeline
+Then create pipeline job.
 
-For example.
+### Build Triggers
+
+Chcek `Build when a change is pushed to Github`.
+
+### Pipeline
 
 * Definition: `Pipeline script from SCM`
     * SCM: `Git`
         * Repositories
             * Repository URL: `https://github.com/tadashi-aikawa/tina`
         * Branches to build
-            * Branch Specifier (blank for 'any'): `${BRANCH_NAME}`
+            * Branch Specifier (blank for 'any'): `*/master`
     * Script Path: `Jenkinsfile`
