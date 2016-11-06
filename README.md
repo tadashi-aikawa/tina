@@ -1,7 +1,7 @@
 TINA
 ====
 
-[![Build Status](http://mamansoft.net:8888/job/TINA-Production-Deploy/badge/icon)](http://mamansoft.net:8888/job/TINA-Production-Deploy/)
+[![Build Status](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/badge/icon)](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/)
 
 `Todoist/Toggl Intermediate Notification API`
 
