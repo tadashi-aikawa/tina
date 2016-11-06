@@ -2,25 +2,21 @@
 
 import json
 import re
-import uuid
 
 from dateutil import parser
 from datetime import datetime, timedelta
 
 import boto3
-import requests
 from pydash import py_
 from chalice import Chalice
-from pytz import timezone, utc
+from pytz import timezone
+
+from chalicelib import api
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
 BUCKET = 'mamansoft-tina'
 KEY = '.tinaconfig'
-
-TOGGL_API_URL = 'https://www.toggl.com/api/v8'
-TOGGL_REPORT_API_URL = 'https://www.toggl.com/reports/api/v2'
-TODOIST_API_URL = 'https://todoist.com/API/v7'
 
 S3 = boto3.client('s3', region_name=REGION)
 app = Chalice(app_name='tina')
@@ -30,79 +26,6 @@ app.debug = True
 @app.route('/ping')
 def ping():
     return {'result': 'I am TINA♥'}
-
-
-# ------------------------
-# post/get
-# ------------------------
-
-def access_toggl(path, api_token, is_report=False):
-    url = TOGGL_REPORT_API_URL if is_report else TOGGL_API_URL
-    return requests.get(url + path, auth=(api_token, 'api_token'))
-
-
-def notify_slack(message, config):
-    payload = {
-        "text": message,
-        "username": u"TINA",
-        "icon_emoji": config['slack'].get('icon_emoji'),
-        "icon_url": config['slack'].get('icon_url'),
-        "channel": config['slack'].get('channel'),
-        "link_names": 1
-    }
-    r = requests.post(config['slack']['url'], data=json.dumps(payload, ensure_ascii=False).encode('utf8'))
-    # for debug
-    print(r.status_code)
-    print(r.content)
-
-    return r
-
-
-def fetch_uncompleted_tasks(todoist_token):
-    items = requests.get(TODOIST_API_URL + '/sync', data={
-        "token": todoist_token,
-        "sync_token": "*",
-        "resource_types": '["items"]'
-    }).json()['items']
-    return py_.reject(items, "checked")
-
-
-def fetch_completed_tasks(todoist_token, since):
-    return requests.get(TODOIST_API_URL + '/completed/get_all', data={
-        "token": todoist_token,
-        "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
-        "limit": 50
-    }).json()['items']
-
-
-def fetch_activities(todoist_token, object_event_types, since):
-    return requests.get(TODOIST_API_URL + '/activity/get', data={
-        "token": todoist_token,
-        "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
-        "object_event_types": object_event_types,
-        "limit": 100
-    }).json()
-
-
-def add_reminder(todoist_token, item_id, remind_time):
-    commands = [{
-        "type": "reminder_add",
-        "uuid": str(uuid.uuid4()),
-        "temp_id": str(uuid.uuid4()),
-        "args": {
-            "item_id": item_id,
-            "service": "push",
-            "due_date_utc": remind_time.astimezone(utc).strftime('%Y-%m-%dT%H:%M')
-        }
-    }]
-
-    r = requests.get(TODOIST_API_URL + '/sync', data={
-        "token": todoist_token,
-        "commands": json.dumps(commands)
-    })
-
-    return r.ok
-
 
 # ------------------------
 # parse
@@ -169,7 +92,7 @@ def fetch_next_item(config):
         # 3:00 - 3:00
         return minus3h(x).date() == minus3h(now).date()
 
-    next_task = py_(fetch_uncompleted_tasks(config['todoist']['api_token'])) \
+    next_task = py_(api.fetch_uncompleted_tasks(config['todoist']['api_token'])) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
         .find(lambda x: str(x['project_id']) in config['project_by_id'].keys()) \
@@ -194,7 +117,7 @@ def create_daily_report(config):
     now = datetime.now(timezone(config['timezone']))
 
     # toggl
-    toggl_reports = access_toggl(
+    toggl_reports = api.access_toggl(
         '/details?workspace_id={}&since={}&user_agent=tina'.format(
             config['toggl']['workspace'], minus3h(now).strftime('%Y-%m-%d')
         ),
@@ -204,7 +127,7 @@ def create_daily_report(config):
 
     # todoist
     complete_todoist_tasks = py_.map(
-        fetch_completed_tasks(config['todoist']['api_token'], minus3h(now).replace(hour=0, minute=0, second=0)),
+        api.fetch_completed_tasks(config['todoist']['api_token'], minus3h(now).replace(hour=0, minute=0, second=0)),
         lambda x: {
             "project_id": x["project_id"],
             "id": x["task_id"],
@@ -215,7 +138,7 @@ def create_daily_report(config):
         }
     )
     uncompleted_todoist_tasks = py_.map(
-        fetch_uncompleted_tasks(config['todoist']['api_token']),
+        api.fetch_uncompleted_tasks(config['todoist']['api_token']),
         lambda x: {
             "project_id": x["project_id"],
             "id": x["id"],
@@ -229,9 +152,9 @@ def create_daily_report(config):
     work_start_task = py_.find(complete_todoist_tasks,
                                lambda x: x["id"] == config["special_events"]["start-work"]["id"])
     interrupted_tasks = py_.filter(
-        fetch_activities(config['todoist']['api_token'],
-                         '["item:added"]',
-                         minus3h(now).replace(hour=0, minute=0, second=0)),
+        api.fetch_activities(config['todoist']['api_token'],
+                            '["item:added"]',
+                            minus3h(now).replace(hour=0, minute=0, second=0)),
         lambda x: parser.parse(x["event_date"]) > work_start_task["completed_date"]
     )
 
@@ -273,7 +196,7 @@ def create_daily_report(config):
 # ------------------------
 
 def exec_remind(entity, config):
-    r = notify_slack(
+    r = api.notify_slack(
         u"@{}\n もうすぐ *{}* の時間だよ".format(config['slack']['mention'], entity['content']),
         config
     )
@@ -285,7 +208,7 @@ def exec_added(entity, config):
     if times:
         hour, minute = times[0].split(':')
         begin_time = minus3h(datetime.now(timezone(config['timezone']))).replace(hour=int(hour), minute=int(minute), second=0)
-        r = add_reminder(
+        r = api.add_reminder(
             config['todoist']['api_token'],
             entity['id'],
             begin_time - timedelta(minutes=config['remind_minutes_delta'])
@@ -293,7 +216,7 @@ def exec_added(entity, config):
         if not r:
             return False
 
-    notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
+    api.notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
     return True
 
 
@@ -301,9 +224,9 @@ def exec_completed(entity, config):
     special_event = py_.find(config['special_events'], lambda x: x['id'] == entity['id'])
     if special_event:
         # TODO: Create independent function
-        notify_slack(py_.sample(special_event['messages']), config)
+        api.notify_slack(py_.sample(special_event['messages']), config)
         if special_event == config['special_events']['leave-work']:
-            notify_slack(
+            api.notify_slack(
                 "\n".join(py_.map(
                     create_daily_report(config),
                     lambda x: config["daily_report_format_by_status"][x["status"]].format(**x)
@@ -315,20 +238,20 @@ def exec_completed(entity, config):
     next_item = fetch_next_item(config)
     next_message = config['next_message_format'].format(**next_item) if next_item is not None else ''
     message = config['message_format_by_event'][entity['event']].format(**entity) + '\n' + next_message
-    r = notify_slack(message, config)
+    r = api.notify_slack(message, config)
 
     # Toggl action
-    current_entry = access_toggl('/time_entries/current', config['toggl']['api_token']).json()['data']
+    current_entry = api.access_toggl('/time_entries/current', config['toggl']['api_token']).json()['data']
     if not current_entry or current_entry['description'] != entity['content']:
         return True
 
-    access_toggl('/time_entries/{}/stop'.format(current_entry['id']), config['toggl']['api_token'])
+    api.access_toggl('/time_entries/{}/stop'.format(current_entry['id']), config['toggl']['api_token'])
     return True
 
 
 def exec_todoist(config, body):
     item = body["event_data"] if body['event_name'] != "reminder:fired" else \
-        py_.find(fetch_uncompleted_tasks(config['todoist']['api_token']),
+        py_.find(api.fetch_uncompleted_tasks(config['todoist']['api_token']),
                  lambda x: x['id'] == body["event_data"]['item_id'])
 
     project = config['project_by_id'].get(str(item['project_id']))
@@ -355,7 +278,7 @@ def exec_todoist(config, body):
     elif body['event_name'] == 'item:added':
         return exec_added(entity, config)
     else:
-        r = notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
+        r = api.notify_slack(config['message_format_by_event'][entity['event']].format(**entity), config)
         return True
 
 

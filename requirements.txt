@@ -1,4 +1,4 @@
-chalice
+chalice==0.4.0
 requests
 boto3
 pydash
