@@ -3,6 +3,7 @@
 import json
 import re
 
+from typing import Optional
 from dateutil import parser
 from datetime import datetime, timedelta
 
@@ -80,6 +81,7 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
 
 
 def minus3h(dt):
+    # type: (datetime) -> datetime
     return dt - timedelta(hours=3)
 
 
