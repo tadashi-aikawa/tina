@@ -233,12 +233,11 @@ def exec_completed(entity, config):
                 )),
                 config
             )
-        return True
-
-    next_item = fetch_next_item(config)
-    next_message = config['next_message_format'].format(**next_item) if next_item is not None else ''
-    message = config['message_format_by_event'][entity['event']].format(**entity) + '\n' + next_message
-    r = api.notify_slack(message, config)
+    else:
+        next_item = fetch_next_item(config)
+        next_message = config['next_message_format'].format(**next_item) if next_item is not None else ''
+        message = config['message_format_by_event'][entity['event']].format(**entity) + '\n' + next_message
+        r = api.notify_slack(message, config)
 
     # Toggl action
     current_entry = api.access_toggl('/time_entries/current', config['toggl']['api_token']).json()['data']
