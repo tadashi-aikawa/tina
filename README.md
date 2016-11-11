@@ -5,12 +5,12 @@ TINA
 
 `Todoist/Toggl Intermediate Notification API`
 
-TINA can Notify slack of following things about in a few seconds.   
+TINA can Notify slack of following things about in a few seconds.
 
 * Your todoist events (create, complete, delete, remind)
 * Your next task (when you completes task)
 * Special behavior (work-start, work-end, lunch... etc)
- 
+
 TODO: Write more information
 
 
@@ -22,7 +22,7 @@ TODO: Write more information
     * Lambda
     * S3
 * Slack
-    * [Incoming webhook URL](https://api.slack.com/incoming-webhooks)  
+    * [Incoming webhook URL](https://api.slack.com/incoming-webhooks)
 * Todist (premium)
     * [Webhook URL](https://developer.todoist.com/index.html)
 * Toggl
