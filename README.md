@@ -28,7 +28,7 @@ TODO: Write more information
 * Toggl
     * [API token](https://github.com/toggl/toggl_api_docs)
 
-And you know [chalice](https://github.com/awslabs/chalice).
+And you should use [chalice](https://github.com/awslabs/chalice).
 
 ## Quck start
 
