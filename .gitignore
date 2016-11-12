@@ -92,3 +92,4 @@ ENV/
 .tinaconfig
 .idea
 .aws
+*.iml
