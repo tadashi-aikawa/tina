@@ -18,21 +18,16 @@ def access_toggl(path, api_token, is_report=False):
 
 
 def notify_slack(message, config):
-    """
-    TODO: Remove config (ex. inject by request)
-    :param message:
-    :param config:
-    :return:
-    """
+    # type: (str, Config) -> any
     payload = {
         "text": message,
         "username": u"TINA",
-        "icon_emoji": config['slack'].get('icon_emoji'),
-        "icon_url": config['slack'].get('icon_url'),
-        "channel": config['slack'].get('channel'),
+        "icon_emoji": config.slack.icon_emoji,
+        "icon_url": config.slack.icon_url,
+        "channel": config.slack.channel,
         "link_names": 1
     }
-    r = requests.post(config['slack']['url'], data=json.dumps(payload, ensure_ascii=False).encode('utf8'))
+    r = requests.post(config.slack.url, data=json.dumps(payload, ensure_ascii=False).encode('utf8'))
     # for debug
     print(r.status_code)
     print(r.content)

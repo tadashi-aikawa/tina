@@ -3,3 +3,4 @@ requests
 boto3
 pydash
 pytz
+git+https://github.com/tadashi-aikawa/dictmixin
