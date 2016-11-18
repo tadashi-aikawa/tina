@@ -20,9 +20,11 @@ node {
                 """
             }
             githubNotifier.success()
+            slackSend color: 'good', message: '${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"'
         } catch (e) {
             currentBuild.result = 'FAILURE'
             githubNotifier.error()
+            slackSend color: 'danger', message: '${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"'
         }
 
     }
