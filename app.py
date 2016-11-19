@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import re
 
-from typing import List
+from typing import List, Text
 from dateutil import parser
 from datetime import datetime, timedelta
 
@@ -40,13 +42,13 @@ def to_project_id(project_by_id, toggl_project_id):
 
 
 def to_project_name(project_by_id, toggl_project_id):
-    # type: (Dict[ProjectId, Project], ProjectId) -> str
+    # type: (Dict[ProjectId, Project], ProjectId) -> Text
     p = py_.find(project_by_id, lambda x: toggl_project_id and x.toggl_id == toggl_project_id)  # type: Project
     return p.name if p else "No Project"
 
 
 def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupted_tasks):
-    # (int, str, List[any], List[any], List[any]) -> DailyReportStatus
+    # (int, Text, List[any], List[any], List[any]) -> DailyReportStatus
     # TODO: any => specific class
 
     def to_identify(id, name):
@@ -208,7 +210,7 @@ def create_daily_report(config):
 def exec_remind(entity, config):
     # type: (Entity, Config) -> bool
     r = api.notify_slack(
-        u"@{}\n もうすぐ *{}* の時間だよ".format(config.slack.mention, entity.content),
+        "@{}\n もうすぐ *{}* の時間だよ".format(config.slack.mention, entity.content),
         config
     )
     return True

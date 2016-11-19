@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+from typing import Text
+
 import json
 import uuid
 
@@ -18,10 +21,10 @@ def access_toggl(path, api_token, is_report=False):
 
 
 def notify_slack(message, config):
-    # type: (str, Config) -> any
+    # type: (Text, Config) -> any
     payload = {
         "text": message,
-        "username": u"TINA",
+        "username": "TINA",
         "icon_emoji": config.slack.icon_emoji,
         "icon_url": config.slack.icon_url,
         "channel": config.slack.channel,
