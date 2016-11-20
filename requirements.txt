@@ -1,4 +1,4 @@
-chalice==0.4.0
+git+https://github.com/tadashi-aikawa/chalice.git
 requests==2.12.1
 boto3==1.4.1
 pydash==3.4.7
