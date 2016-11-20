@@ -294,7 +294,10 @@ def exec_todoist(config, body):
     elif body['event_name'] == 'item:added':
         return exec_added(entity, config)
     else:
-        r = api.notify_slack(config.message_format_by_event[entity.event].format(**entity), config)
+        r = api.notify_slack(
+            config.message_format_by_event[entity.event].format(**entity.to_dict()),
+            config
+        )
         return True
 
 

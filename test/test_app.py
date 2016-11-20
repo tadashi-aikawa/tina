@@ -41,6 +41,22 @@ def test_create():
     app.exec_todoist(config, body)
 
 
+def test_delete():
+    body = {
+        "event_name": "item:deleted",
+        "event_data": {
+            "id": 90013592,
+            "content": u"TINA テスト",
+            "project_id": 156051149,
+            "labels": [652234]
+        }
+    }
+
+    with open('../.tinaconfig') as f:
+        config = Config.from_dict(json.load(f))
+    app.exec_todoist(config, body)
+
+
 def test_reminder_fired():
     body = {
         "event_name": "reminder:fired",
@@ -55,4 +71,4 @@ def test_reminder_fired():
     app.exec_todoist(config, body)
 
 
-test_create()
+test_delete()
