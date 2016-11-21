@@ -237,6 +237,11 @@ def exec_added(entity, config):
 
 def exec_completed(entity, config):
     # type: (Entity, Config) -> bool
+
+    # Ignore the task which is child task and closed in past
+    if entity.in_history == 1 and entity.parent_id:
+        return True
+
     special_event = py_.find(config.special_events, lambda x: x.id == entity.id)  # type: Event
     if special_event:
         # TODO: Create independent function
@@ -280,7 +285,9 @@ def exec_todoist(config, body):
         "project_name": project and project.name,
         "labels": labels,
         "content": config.secret_name if private else item['content'],
-        "private": private
+        "private": private,
+        "parent_id": item['parent_id'],
+        "in_history": item['in_history']
     })
 
     if not entity.project_name:

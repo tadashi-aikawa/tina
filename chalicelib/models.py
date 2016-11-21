@@ -20,7 +20,8 @@ DailyReportStatus = Text
 
 class Entity(DictMixin):
     def __init__(self, event, id, project_id,
-                 project_name, labels, content, private):
+                 project_name, labels, content, private,
+                 parent_id, in_history):
         self.event = event  # type: Text
         self.id = id  # type: int
         self.project_id = project_id  # type: int
@@ -28,6 +29,8 @@ class Entity(DictMixin):
         self.labels = labels  # type: List[int]
         self.content = content  # type: Text
         self.private = private  # type: bool
+        self.parent_id = parent_id  # type: Optional[int]
+        self.in_history = in_history  # type: int
 
 
 class Slack(DictMixin):

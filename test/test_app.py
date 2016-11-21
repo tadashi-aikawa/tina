@@ -16,7 +16,9 @@ def test():
             "id": REPEAT_TASK,
             "content": u'TINA テスト',
             "labels": [652234],
-            "project_id": 156051149
+            "project_id": 156051149,
+            "in_history": 0,
+            "parent_id": None
         }
     }
 
@@ -71,4 +73,4 @@ def test_reminder_fired():
     app.exec_todoist(config, body)
 
 
-test_delete()
+test()
