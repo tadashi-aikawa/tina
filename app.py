@@ -290,7 +290,7 @@ def exec_todoist(config, body):
         "in_history": item['in_history']
     })
 
-    if not entity.project_name:
+    if not entity.project_name and entity.id not in py_.map(config.special_events, lambda x: x.id):
         print('There is no project matched project_id {}'.format(entity.project_id))
         return True
 
