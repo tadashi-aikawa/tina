@@ -6,3 +6,4 @@ pytz==2016.7
 typing==3.5.2.2
 git+https://github.com/tadashi-aikawa/dictmixin
 pytest==3.0.4
+pytest-cov==2.4.0
