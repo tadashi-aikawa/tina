@@ -3,6 +3,7 @@ TINA
 
 * [![Build Status](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/badge/icon)](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/) Build and deploy result
 * [![Test Status](https://travis-ci.org/tadashi-aikawa/tina.svg?branch=master)](https://travis-ci.org/tadashi-aikawa/tina.svg?branch=master) Test result
+* [![Coverage](https://coveralls.io/repos/github/tadashi-aikawa/tina/badge.svg)](https://coveralls.io/github/tadashi-aikawa/tina) Coverage
 
 `Todoist/Toggl Intermediate Notification API`
 
