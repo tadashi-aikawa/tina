@@ -1,74 +1,76 @@
-{
-    "timezone": "Asia/Tokyo",
-    "remind_minutes_delta": 10,
-    "slack": {
-        "url": "https://slack-incoming-webhook-url",
-        "icon_emoji": ":hoge:",
-        "icon_url": "https://slack-user-icon",
-        "mention": "yourname",
-        "channel": "#yourchannel"
-    },
-    "toggl": {
-        "api_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        "workspace": 7777777
-    },
-    "todoist": {
-        "api_token": "yyyyyyyyyyyyyyyyyyyyyyyyyyy"
-    },
-    "special_events": {
-      "start-wark": {
-        "id": 11111,
-        "messages": [
-          "Let's work!"
-        ]
-      },
-      "lunch-start": {
-        "id": 22222,
-        "messages": [
-          "Have a nice lunch!",
-          "What do you want to eat?"
-        ]
-      },
-      "lunch-end": {
-        "id": 33333,
-        "messages": [":fb-sad:"]
-      },
-      "must-task-completed": {
-        "id": 44444,
-        "messages": ["Yes! you can back to home!!"]
-      },
-      "leave-work": {
-        "id": 55555,
-        "messages": [
-          "Bye!!",
-          "Have a nice dinner!"
-        ]
-      }
-    },
-    "message_format_by_event": {
-        "item:added": ":new: *{content}* - `{project_name}`",
-        "item:deleted": ":wastebasket: *{content}* - `{project_name}`",
-        "item:completed": ":heavy_check_mark: *{content}* - `{project_name}`"
-    },
-    "next_message_format": "      => 次は  *{content}* - `{project_name}` だよ",
-    "daily_report_format_by_status": {
-      "completed": ":white_check_mark: `{elapsed:3}分` {task} - `{project_name}`",
-      "not_completed": ":ballot_box_with_check: `{elapsed:3}分` {task} - `{project_name}`"
-    },
-    "label_by_name": {
-      "private": {
-        "id": 652233,
-        "name": "Private"
-      }
-    },
-    "secret_name": ":secret:のタスク",
-    "project_by_id": {
-        "123456789": {
-            "name": "Project name",
-            "toggl_id": 12345678
-        },
-        "012345678": {
-            "name": "Project name"
-        }
-    }
-}
+#---------------------------------
+# General
+#---------------------------------
+timezone: Asia/Tokyo
+remind_minutes_delta: 10
+
+todoist:
+  api_token: "yyyyyyyyyyyyyyyyyyyyyyyyyyy"
+toggl:
+  api_token: "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  workspace: 7777777
+slack:
+  url: "https://slack-incoming-webhook-url"
+  icon_emoji: ":hoge:"
+  icon_url: "https://slack-user-icon"
+  mention: yourname
+  channel: yourchannel
+
+
+#---------------------------------
+# Message
+#---------------------------------
+secret_name: ":secret: task"
+next_message_format: "      => Next is *{content}* - `{project_name}`"
+message_format_by_event:
+  "item:added": ":new: *{content}* - `{project_name}`"
+  "item:deleted": ":wastebasket: *{content}* - `{project_name}`"
+  "item:completed": ":heavy_check_mark: *{content}* - `{project_name}`"
+daily_report_format_by_status:
+  task_completed: ":empty::white_check_mark: `{elapsed:3} minutes` {name} - `{project_name}`"
+  task_not_completed: ":empty::ballot_box_with_check: `{elapsed:3} minutes` {name} - `{project_name}`"
+  interrupted_task_completed: ":warning::white_check_mark: `{elapsed:3} minutes` {name} - `{project_name}`"
+  interrupted_task_not_completed: ":warning::ballot_box_with_check: `{elapsed:3} minutes` {name} - `{project_name}`"
+
+
+#---------------------------------
+# Grouping
+#---------------------------------
+
+# TINA will inform you when tasks belonging to the following projects are hooked
+project_by_id:
+  123456789:
+    name: "Project name"
+    toggl_id: 12345678
+  987654321:
+    name: "Project name"
+
+# TINA notify following events specially even If hooked task is joined no project
+special_events:
+  start-work:
+    id: 11111111,
+    messages:
+      - "Let's work!"
+  lunch-start:
+    id: 22222222
+    messages:
+      - "Have a nice lunch!"
+      - "What do you want to eat?"
+  lunch-end:
+    id: 33333333
+    messages:
+      - ":fb-sad:"
+  must-task-completed:
+    id: 44444444
+    messages:
+      - "Yes! you can back to home!!"
+  leave-work:
+    id: 55555555
+    messages:
+      - "Bye!!"
+      - "Have a nice dinner!"
+
+label_by_name:
+  private:
+    id: 777777
+    name: "Private"
