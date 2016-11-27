@@ -2,13 +2,21 @@
 
 from __future__ import unicode_literals
 
-import json
 import app
 import yaml
+from yaml import Loader, SafeLoader
 
 from typing import Text
 from datetime import datetime, timedelta
 from chalicelib.models import Config
+
+
+def construct_yaml_str(self, node):
+    return self.construct_scalar(node)
+
+
+Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
+SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 DATE_FORMAT = "%Y/%m/%d %H:%M:%S"  # type: Text
 
@@ -35,6 +43,7 @@ REPEAT_TASK = 72824144
 DEVELOPMENT_PROJECT = 166337596
 FUSHIME_PROJECT = 156051149
 
+
 def item_completed():
     body = {
         "event_name": "item:completed",
@@ -59,8 +68,10 @@ def item_added():
         "event_data": {
             "id": 90013592,
             "content": "てすとのたすく(17:00-18:00)",
-            "project_id": 156051149,
-            "labels": [652234]
+            "project_id": DEVELOPMENT_PROJECT,
+            "labels": [652234],
+            "in_history": 0,
+            "parent_id": None
         }
     }
 
@@ -75,8 +86,10 @@ def item_deleted():
         "event_data": {
             "id": 90013592,
             "content": "TINA テスト",
-            "project_id": 156051149,
-            "labels": [652234]
+            "project_id": DEVELOPMENT_PROJECT,
+            "labels": [652234],
+            "in_history": 0,
+            "parent_id": None
         }
     }
 
@@ -89,7 +102,7 @@ def reminder_fired():
     body = {
         "event_name": "reminder:fired",
         "event_data": {
-            "item_id": 90013105,
+            "item_id": 91451296,
             "id": 33482384
         }
     }
@@ -98,4 +111,5 @@ def reminder_fired():
         config = Config.from_dict(yaml.load(f))
     app.exec_todoist(config, body)
 
-item_completed()
+
+reminder_fired()
