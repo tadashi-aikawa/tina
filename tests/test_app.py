@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import json
 import app
+import yaml
 
 from typing import Text
 from datetime import datetime, timedelta
@@ -29,22 +32,24 @@ WORK_BEGIN_TASK = 72824136
 WORK_END_TASK = 73847457
 REPEAT_TASK = 72824144
 
+DEVELOPMENT_PROJECT = 166337596
+FUSHIME_PROJECT = 156051149
 
 def item_completed():
     body = {
         "event_name": "item:completed",
         "event_data": {
             "id": REPEAT_TASK,
-            "content": u'TINA テスト',
+            "content": 'TINA テスト',
             "labels": [652234],
-            "project_id": 156051149,
+            "project_id": DEVELOPMENT_PROJECT,
             "in_history": 0,
             "parent_id": None
         }
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(json.load(f))
+        config = Config.from_dict(yaml.load(f))
     app.exec_todoist(config, body)
 
 
@@ -53,14 +58,14 @@ def item_added():
         "event_name": "item:added",
         "event_data": {
             "id": 90013592,
-            "content": u"てすとのたすく(17:00-18:00)",
+            "content": "てすとのたすく(17:00-18:00)",
             "project_id": 156051149,
             "labels": [652234]
         }
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(json.load(f))
+        config = Config.from_dict(yaml.load(f))
     app.exec_todoist(config, body)
 
 
@@ -69,14 +74,14 @@ def item_deleted():
         "event_name": "item:deleted",
         "event_data": {
             "id": 90013592,
-            "content": u"TINA テスト",
+            "content": "TINA テスト",
             "project_id": 156051149,
             "labels": [652234]
         }
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(json.load(f))
+        config = Config.from_dict(yaml.load(f))
     app.exec_todoist(config, body)
 
 
@@ -90,5 +95,7 @@ def reminder_fired():
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(json.load(f))
+        config = Config.from_dict(yaml.load(f))
     app.exec_todoist(config, body)
+
+item_completed()

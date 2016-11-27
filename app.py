@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import re
+import yaml
 
 from typing import List, Text
 from dateutil import parser
@@ -112,7 +113,7 @@ def fetch_next_item(config):
         return None
 
     next_project_id = next_task['project_id']
-    next_project = config.project_by_id.get(str(next_project_id))
+    next_project = config.project_by_id.get(next_project_id)
     labels = next_task['labels']
     private = config.label_by_name['private'].id in labels
     return {
@@ -275,7 +276,7 @@ def exec_todoist(config, body):
         py_.find(api.fetch_uncompleted_tasks(config.todoist.api_token),
                  lambda x: x['id'] == body["event_data"]['item_id'])
 
-    project = config.project_by_id.get(str(item['project_id']))
+    project = config.project_by_id.get(item['project_id'])
     labels = item['labels']  # type: List[int]
     private = config.label_by_name['private'].id in labels  # type: bool
     entity = Entity.from_dict({
