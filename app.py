@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 import re
-import yaml
 
 from typing import List, Text
 from dateutil import parser
@@ -312,7 +311,7 @@ def exec_todoist(config, body):
 @app.route('/todoist', methods=['POST'])
 def todoist():
     s3_obj = S3.get_object(Bucket=BUCKET, Key=KEY)
-    config = Config.from_json(s3_obj['Body'].read())  # type: Config
+    config = Config.from_yaml(s3_obj['Body'].read())  # type: Config
     body = app.current_request.json_body
 
     return {'is_success': exec_todoist(config, body)}

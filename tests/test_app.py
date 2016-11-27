@@ -3,20 +3,10 @@
 from __future__ import unicode_literals
 
 import app
-import yaml
-from yaml import Loader, SafeLoader
 
 from typing import Text
 from datetime import datetime, timedelta
 from chalicelib.models import Config
-
-
-def construct_yaml_str(self, node):
-    return self.construct_scalar(node)
-
-
-Loader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
-SafeLoader.add_constructor(u'tag:yaml.org,2002:str', construct_yaml_str)
 
 DATE_FORMAT = "%Y/%m/%d %H:%M:%S"  # type: Text
 
@@ -58,7 +48,7 @@ def item_completed():
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(yaml.load(f))
+        config = Config.from_yaml(f)
     app.exec_todoist(config, body)
 
 
@@ -76,7 +66,7 @@ def item_added():
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(yaml.load(f))
+        config = Config.from_yaml(f)
     app.exec_todoist(config, body)
 
 
@@ -94,7 +84,7 @@ def item_deleted():
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(yaml.load(f))
+        config = Config.from_yaml(f)
     app.exec_todoist(config, body)
 
 
@@ -108,8 +98,8 @@ def reminder_fired():
     }
 
     with open('../.tinaconfig') as f:
-        config = Config.from_dict(yaml.load(f))
+        config = Config.from_yaml(f)
     app.exec_todoist(config, body)
 
 
-reminder_fired()
+item_completed()
