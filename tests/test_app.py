@@ -100,6 +100,3 @@ def reminder_fired():
     with open('../.tinaconfig') as f:
         config = Config.from_yaml(f)
     app.exec_todoist(config, body)
-
-
-item_completed()
