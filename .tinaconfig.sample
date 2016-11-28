@@ -48,7 +48,7 @@ project_by_id:
 # TINA notify following events specially even If hooked task is joined no project
 special_events:
   start-work:
-    id: 11111111,
+    id: 11111111
     messages:
       - "Let's work!"
   lunch-start:
