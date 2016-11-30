@@ -106,7 +106,7 @@ def fetch_next_item(config):
     next_task = py_(api.fetch_uncompleted_tasks(config.todoist.api_token)) \
         .filter(lambda x: equal_now_day(x['due_date_utc'])) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
-        .find(lambda x: str(x['project_id']) in config.project_by_id.keys()) \
+        .find(lambda x: x['project_id'] in config.project_by_id.keys()) \
         .value()
     if not next_task:
         return None

@@ -7,7 +7,7 @@ from dictmixin.main import DictMixin
 
 TodoistEvent = Text
 LabelName = Text
-ProjectId = Text
+ProjectId = int
 
 """
 * task_completed
