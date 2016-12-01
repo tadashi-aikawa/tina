@@ -218,7 +218,7 @@ def exec_remind(entity, config):
 
 def exec_added(entity, config):
     # type: (Entity, Config) -> bool
-    times = re.compile('\d\d:\d\d').findall(entity.content)
+    times = re.compile('\d{1,2}:\d{2}').findall(entity.content)
     if times:
         hour, minute = times[0].split(':')
         begin_time = minus3h(datetime.now(timezone(config.timezone))).replace(hour=int(hour), minute=int(minute),
