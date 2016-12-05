@@ -7,4 +7,3 @@ typing==3.5.2.2
 git+https://github.com/tadashi-aikawa/dictmixin@0.2.0
 pytest==3.0.4
 pytest-cov==2.4.0
-pyyaml==3.12
