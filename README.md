@@ -1,11 +1,19 @@
 TINA
 ====
-
-* [![Build Status](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/badge/icon)](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/) Build and deploy result
-* [![Test Status](https://travis-ci.org/tadashi-aikawa/tina.svg?branch=master)](https://travis-ci.org/tadashi-aikawa/tina.svg?branch=master) Test result
-* [![Coverage](https://coveralls.io/repos/github/tadashi-aikawa/tina/badge.svg)](https://coveralls.io/github/tadashi-aikawa/tina) Coverage
-
+ 
 `Todoist/Toggl Intermediate Notification API`
+
+----
+
+Deploy status [![Build Status](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/badge/icon)](https://jenkins.mamansoft.net/job/TINA-Production-Deploy/)
+
+[![Test Status](https://travis-ci.org/tadashi-aikawa/tina.svg?branch=master)](https://travis-ci.org/tadashi-aikawa/tina.svg?branch=master)
+[![Coverage](https://coveralls.io/repos/github/tadashi-aikawa/tina/badge.svg)](https://coveralls.io/github/tadashi-aikawa/tina)
+[![Code Climate](https://codeclimate.com/github/tadashi-aikawa/tina/badges/gpa.svg)](https://codeclimate.com/github/tadashi-aikawa/tina)
+[![](https://img.shields.io/github/license/mashape/apistatus.svg)]()
+[![](https://img.shields.io/badge/python-2.7-blue.svg)]()
+
+----
 
 TINA can Notify slack of following things about in a few seconds.
 
