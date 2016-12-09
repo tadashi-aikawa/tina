@@ -114,7 +114,7 @@ def fetch_next_item(config):
     next_project_id = next_task['project_id']
     next_project = config.project_by_id.get(next_project_id)
     labels = next_task['labels']
-    private = config.label_by_name['private'].id in labels
+    private = config.special_labels.private.id in labels
     return {
         "project_id": next_project_id,
         "project_name": next_project and next_project.name,
@@ -146,7 +146,7 @@ def create_daily_report(config):
             "name": x["content"].split(" @")[0],
             "label_names": x["content"].split(" @")[1:],
             "completed_date": parser.parse(x["completed_date"]),
-            "private": config.label_by_name['private'].name in x["content"].split(" @")[1:]
+            "private": config.special_labels.private.name in x["content"].split(" @")[1:]
         }
     )
     uncompleted_todoist_tasks = py_.map(
@@ -156,7 +156,7 @@ def create_daily_report(config):
             "id": x["id"],
             "name": x["content"],
             "label_ids": x["labels"],
-            "private": config.label_by_name['private'].id in x["labels"]
+            "private": config.special_labels.private.id in x["labels"]
         }
     )
 
@@ -277,7 +277,7 @@ def exec_todoist(config, body):
 
     project = config.project_by_id.get(item['project_id'])
     labels = item['labels']  # type: List[int]
-    private = config.label_by_name['private'].id in labels  # type: bool
+    private = config.special_labels.private.id in labels  # type: bool
     entity = Entity.from_dict({
         "event": body['event_name'],
         "id": item["id"],

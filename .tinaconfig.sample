@@ -70,7 +70,7 @@ special_events:
       - "Bye!!"
       - "Have a nice dinner!"
 
-label_by_name:
+special_labels:
   private:
     id: 777777
     name: "Private"

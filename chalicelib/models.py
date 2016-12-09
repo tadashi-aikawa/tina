@@ -65,6 +65,11 @@ class Label(DictMixin):
         self.name = name  # type: Text
 
 
+class SpecialLabels(DictMixin):
+    def __init__(self, private):
+        self.private = Label.from_dict(private)  # type: Label
+
+
 class Project(DictMixin):
     def __init__(self, name, toggl_id=None):
         self.name = name  # type: Text
@@ -74,7 +79,7 @@ class Project(DictMixin):
 class Config(DictMixin):
     def __init__(self, timezone, remind_minutes_delta, slack, toggl, todoist,
                  special_events, message_format_by_event, next_message_format,
-                 daily_report_format_by_status, label_by_name, secret_name, project_by_id):
+                 daily_report_format_by_status, special_labels, secret_name, project_by_id):
         self.timezone = timezone  # type: Text
         self.remind_minutes_delta = remind_minutes_delta  # type: int
         self.slack = Slack.from_dict(slack)  # type: Slack
@@ -84,6 +89,6 @@ class Config(DictMixin):
         self.message_format_by_event = message_format_by_event  # type: Dict[TodoistEvent, Text]
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format_by_status = daily_report_format_by_status  # type: Dict[DailyReportStatus, Text]
-        self.label_by_name = Label.from_dict2dict(label_by_name)  # type: Dict[LabelName, Label]J
+        self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
         self.secret_name = secret_name  # type: Text
         self.project_by_id = Project.from_dict2dict(project_by_id)  # type: Dict[ProjectId, Project]
