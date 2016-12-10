@@ -52,7 +52,7 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
     # TODO: any => specific class
 
     def to_identify(id, name):
-        return u"{}{}".format(id, name)
+        return "{}{}".format(id, name)
 
     completed_task_identifies = py_.map(
         completed_tasks,
@@ -166,12 +166,6 @@ def create_daily_report(config):
                              minus3h(now).replace(hour=0, minute=0, second=0)),
         lambda x: parser.parse(x["event_date"]) > work_start_task["completed_date"]
     )
-
-    def find_todoist_task(project_id, name):
-        return py_.find(
-            complete_todoist_tasks + uncompleted_todoist_tasks,
-            lambda t: project_id == t["project_id"] and name == t["name"]
-        )
 
     def reports2task(reports):
         r = reports[0]
