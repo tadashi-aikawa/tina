@@ -159,7 +159,7 @@ def create_daily_report(config):
 
     # Interrupted task
     work_start_task = py_.find(complete_todoist_tasks,
-                               lambda x: x["id"] == config.special_events["start-work"].id)
+                               lambda x: x["id"] == config.special_events.start_work.id)
     interrupted_tasks = py_.filter(
         api.fetch_activities(config.todoist.api_token,
                              '["item:added"]',
@@ -243,7 +243,7 @@ def exec_completed(entity, config):
     if special_event:
         # TODO: Create independent function
         api.notify_slack(py_.sample(special_event.messages), config)
-        if special_event == config.special_events['leave-work']:
+        if special_event == config.special_events.leave_work:
             api.notify_slack(
                 "\n".join(py_.map(
                     create_daily_report(config),

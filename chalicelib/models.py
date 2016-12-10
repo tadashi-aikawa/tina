@@ -58,6 +58,16 @@ class Event(DictMixin):
         self.messages = messages  # type: List[Text]
 
 
+class SpecialEvents(DictMixin):
+    def __init__(self, start_work, lunch_start, lunch_end,
+                 must_task_completed,  leave_work):
+        self.start_work = Event.from_dict(start_work)  # type: Event
+        self.lunch_start = Event.from_dict(lunch_start)  # type: Event
+        self.lunch_end = Event.from_dict(lunch_end)  # type: Event
+        self.must_task_completed = Event.from_dict(must_task_completed)  # type: Event
+        self.leave_work = Event.from_dict(leave_work)  # type: Event
+
+
 class Label(DictMixin):
     def __init__(self, id, name):
         self.id = id  # type: int
@@ -84,7 +94,7 @@ class Config(DictMixin):
         self.slack = Slack.from_dict(slack)  # type: Slack
         self.toggl = Toggl.from_dict(toggl)  # type: Toggl
         self.todoist = Todoist.from_dict(todoist)  # type: Todoist
-        self.special_events = Event.from_dict2dict(special_events)  # type: Dict[Text, Event]
+        self.special_events = Event.from_dict(special_events)  # type: SpecialEvents
         self.message_format_by_event = message_format_by_event  # type: Dict[TodoistEvent, Text]
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format_by_status = daily_report_format_by_status  # type: Dict[DailyReportStatus, Text]

@@ -47,24 +47,24 @@ project_by_id:
 
 # TINA notify following events specially even If hooked task is joined no project
 special_events:
-  start-work:
+  start_work:
     id: 11111111
     messages:
       - "Let's work!"
-  lunch-start:
+  lunch_start:
     id: 22222222
     messages:
       - "Have a nice lunch!"
       - "What do you want to eat?"
-  lunch-end:
+  lunch_end:
     id: 33333333
     messages:
-      - ":fb-sad:"
-  must-task-completed:
+      - ":fb_sad:"
+  must_task_completed:
     id: 44444444
     messages:
       - "Yes! you can back to home!!"
-  leave-work:
+  leave_work:
     id: 55555555
     messages:
       - "Bye!!"
