@@ -94,7 +94,7 @@ class Config(DictMixin):
         self.slack = Slack.from_dict(slack)  # type: Slack
         self.toggl = Toggl.from_dict(toggl)  # type: Toggl
         self.todoist = Todoist.from_dict(todoist)  # type: Todoist
-        self.special_events = Event.from_dict(special_events)  # type: SpecialEvents
+        self.special_events = SpecialEvents.from_dict(special_events)  # type: SpecialEvents
         self.message_format_by_event = message_format_by_event  # type: Dict[TodoistEvent, Text]
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format_by_status = daily_report_format_by_status  # type: Dict[DailyReportStatus, Text]
