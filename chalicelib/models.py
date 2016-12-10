@@ -67,6 +67,14 @@ class SpecialEvents(DictMixin):
         self.must_task_completed = Event.from_dict(must_task_completed)  # type: Event
         self.leave_work = Event.from_dict(leave_work)  # type: Event
 
+    def find_by_id(self, _id):
+        # type: (int) -> Optional[Event]
+        for k, v in self.to_dict().items():
+            if v.get("id") == _id:
+                return getattr(self, k)
+
+        return None
+
 
 class Label(DictMixin):
     def __init__(self, id, name):

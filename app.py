@@ -198,6 +198,15 @@ def create_daily_report(config):
 # exec
 # ------------------------
 
+def exec_other_events(entity, config):
+    # type: (Entity, Config) -> bool
+    r = api.notify_slack(
+        config.message_format_by_event[entity.event].format(**entity.to_dict()),
+        config
+    )
+    return True
+
+
 def exec_remind(entity, config):
     # type: (Entity, Config) -> bool
     r = api.notify_slack(
@@ -233,7 +242,7 @@ def exec_completed(entity, config):
     if entity.in_history == 1 and entity.parent_id:
         return True
 
-    special_event = py_.find(config.special_events, lambda x: x.id == entity.id)  # type: Event
+    special_event = config.special_events.find_by_id(entity.id)  # type: Event
     if special_event:
         # TODO: Create independent function
         api.notify_slack(py_.sample(special_event.messages), config)
@@ -284,18 +293,12 @@ def exec_todoist(config, body):
         print('There is no project matched project_id {}'.format(entity.project_id))
         return True
 
-    if body['event_name'] == 'reminder:fired':
-        return exec_remind(entity, config)
-    elif body['event_name'] == 'item:completed':
-        return exec_completed(entity, config)
-    elif body['event_name'] == 'item:added':
-        return exec_added(entity, config)
-    else:
-        r = api.notify_slack(
-            config.message_format_by_event[entity.event].format(**entity.to_dict()),
-            config
-        )
-        return True
+    functions_by_event = {
+        'reminder:fired': exec_remind,
+        'item:completed': exec_completed,
+        'item:added': exec_added
+    }
+    return functions_by_event.get(body["event_name"], exec_other_events)(entity, config)
 
 
 @app.route('/todoist', methods=['POST'])
