@@ -114,13 +114,12 @@ def fetch_next_item(config):
     next_project_id = next_task['project_id']
     next_project = config.project_by_id.get(next_project_id)
     labels = next_task['labels']
-    private = config.special_labels.private.id in labels
+
     return {
         "project_id": next_project_id,
         "project_name": next_project and next_project.name,
-        "labels": next_task['labels'],
-        "content": config.secret_name if private else next_task['content'],
-        "private": private
+        "labels": labels,
+        "content": next_task['content']
     }
 
 
@@ -145,8 +144,7 @@ def create_daily_report(config):
             "id": x["task_id"],
             "name": x["content"].split(" @")[0],
             "label_names": x["content"].split(" @")[1:],
-            "completed_date": parser.parse(x["completed_date"]),
-            "private": config.special_labels.private.name in x["content"].split(" @")[1:]
+            "completed_date": parser.parse(x["completed_date"])
         }
     )
     uncompleted_todoist_tasks = py_.map(
@@ -155,8 +153,7 @@ def create_daily_report(config):
             "project_id": x["project_id"],
             "id": x["id"],
             "name": x["content"],
-            "label_ids": x["labels"],
-            "private": config.special_labels.private.id in x["labels"]
+            "label_ids": x["labels"]
         }
     )
 
@@ -180,9 +177,9 @@ def create_daily_report(config):
         r = reports[0]
         project_id = to_project_id(config.project_by_id, r["pid"])
         project_name = to_project_name(config.project_by_id, r["pid"])
-        todoist_task = find_todoist_task(project_id, r["description"])
+
         return {
-            "name": ":secret:" if todoist_task and todoist_task["private"] else r["description"],
+            "name": r["description"],
             "project_id": project_id,
             "project_name": project_name,
             "elapsed": py_.sum(reports, "dur") / 1000 / 60,
@@ -258,7 +255,7 @@ def exec_completed(entity, config):
         next_item = fetch_next_item(config)
         next_message = config.next_message_format.format(**next_item) if next_item is not None else ''
         message = config.message_format_by_event[entity.event].format(**entity.to_dict()) + '\n' + next_message
-        r = api.notify_slack(message, config)
+        api.notify_slack(message, config)
 
     # Toggl action
     current_entry = api.access_toggl('/time_entries/current', config.toggl.api_token).json()['data']
@@ -277,15 +274,14 @@ def exec_todoist(config, body):
 
     project = config.project_by_id.get(item['project_id'])
     labels = item['labels']  # type: List[int]
-    private = config.special_labels.private.id in labels  # type: bool
+
     entity = Entity.from_dict({
         "event": body['event_name'],
         "id": item["id"],
         "project_id": item['project_id'],
         "project_name": project and project.name,
         "labels": labels,
-        "content": config.secret_name if private else item['content'],
-        "private": private,
+        "content": item['content'],
         "parent_id": item['parent_id'],
         "in_history": item['in_history']
     })

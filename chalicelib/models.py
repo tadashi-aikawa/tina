@@ -20,7 +20,7 @@ DailyReportStatus = Text
 
 class Entity(DictMixin):
     def __init__(self, event, id, project_id,
-                 project_name, labels, content, private,
+                 project_name, labels, content,
                  parent_id, in_history):
         self.event = event  # type: Text
         self.id = id  # type: int
@@ -28,7 +28,6 @@ class Entity(DictMixin):
         self.project_name = project_name  # type: Text
         self.labels = labels  # type: List[int]
         self.content = content  # type: Text
-        self.private = private  # type: bool
         self.parent_id = parent_id  # type: Optional[int]
         self.in_history = in_history  # type: int
 
@@ -66,8 +65,8 @@ class Label(DictMixin):
 
 
 class SpecialLabels(DictMixin):
-    def __init__(self, private):
-        self.private = Label.from_dict(private)  # type: Label
+    def __init__(self, waiting):
+        self.waiting = Label.from_dict(waiting)  # type: Label
 
 
 class Project(DictMixin):

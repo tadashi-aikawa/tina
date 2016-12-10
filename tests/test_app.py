@@ -38,7 +38,7 @@ def item_completed():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": REPEAT_TASK,
+            "id": 91595876,
             "content": 'TINA テスト',
             "labels": [652234],
             "project_id": DEVELOPMENT_PROJECT,
@@ -56,10 +56,10 @@ def item_added():
     body = {
         "event_name": "item:added",
         "event_data": {
-            "id": 90013592,
-            "content": "てすとのたすく(17:00-18:00)",
+            "id": 39764256,
+            "content": "てすとのたすく",
             "project_id": DEVELOPMENT_PROJECT,
-            "labels": [652234],
+            "labels": [652233],
             "in_history": 0,
             "parent_id": None
         }
@@ -100,3 +100,5 @@ def reminder_fired():
     with open('../.tinaconfig') as f:
         config = Config.from_yaml(f)
     app.exec_todoist(config, body)
+
+item_added()
