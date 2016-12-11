@@ -20,7 +20,6 @@ slack:
 #---------------------------------
 # Message
 #---------------------------------
-secret_name: ":secret: task"
 next_message_format: "      => Next is *{content}* - `{project_name}`"
 message_format_by_event:
   "item:added": ":new: *{content}* - `{project_name}`"
