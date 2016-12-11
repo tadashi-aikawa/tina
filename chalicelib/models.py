@@ -96,7 +96,7 @@ class Project(DictMixin):
 class Config(DictMixin):
     def __init__(self, timezone, remind_minutes_delta, slack, toggl, todoist,
                  special_events, message_format_by_event, next_message_format,
-                 daily_report_format_by_status, special_labels, secret_name, project_by_id):
+                 daily_report_format_by_status, special_labels, project_by_id):
         self.timezone = timezone  # type: Text
         self.remind_minutes_delta = remind_minutes_delta  # type: int
         self.slack = Slack.from_dict(slack)  # type: Slack
@@ -107,5 +107,40 @@ class Config(DictMixin):
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format_by_status = daily_report_format_by_status  # type: Dict[DailyReportStatus, Text]
         self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
-        self.secret_name = secret_name  # type: Text
         self.project_by_id = Project.from_dict2dict(project_by_id)  # type: Dict[ProjectId, Project]
+
+
+class TodoistTask(DictMixin):
+    def __init__(self, id, content, priority, project_id, labels, checked,
+                 due_date_utc, date_added, date_lang,
+                 parent_id, collapsed, date_string,
+                 assigned_by_uid, is_archived, sync_id, in_history,
+                 indent, user_id, is_deleted, responsible_uid,
+                 day_order=None, item_order=None, due_date=None, all_day=None):
+        self.id = id  # type: int
+        self.content = content  # type: Text
+        self.priority = priority  # type: int
+        self.project_id = project_id  # type: int
+        self.labels = labels  # type: List[int]
+        self.checked = checked  # type: int
+
+        self.due_date = due_date  # type: Text
+        self.due_date_utc = due_date_utc  # type: Text
+        self.date_added = date_added  # type: Text
+        self.date_lang = date_lang  # type: Text
+        self.date_string = date_string  # type: Text
+
+        self.day_order = day_order  # type: int
+        self.item_order = item_order  # type: int
+        self.parent_id = parent_id  # type: int
+        self.collapsed = collapsed  # type: int
+
+        self.assigned_by_uid = assigned_by_uid  # type: int
+        self.is_archived = is_archived  # type: int
+        self.sync_id = sync_id  # type: int
+        self.in_history = in_history  # type: int
+        self.indent = indent  # type: int
+        self.user_id = user_id  # type: int
+        self.is_deleted = is_deleted  # type: int
+        self.responsible_uid = responsible_uid  # type: int
+        self.all_day = all_day  # type: bool

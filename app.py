@@ -3,18 +3,17 @@
 from __future__ import unicode_literals
 
 import re
-
-from typing import List, Text
-from dateutil import parser
 from datetime import datetime, timedelta
 
 import boto3
-from pydash import py_
 from chalice import Chalice
+from dateutil import parser
+from pydash import py_
 from pytz import timezone
+from typing import List, Text
 
 from chalicelib import api
-from chalicelib.models import Entity, Config, Event, Project, DailyReportStatus
+from chalicelib.models import Entity, Config, Event, Project, TodoistTask
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -104,23 +103,25 @@ def fetch_next_item(config):
         return minus3h(x).date() == minus3h(now).date()
 
     next_task = py_(api.fetch_uncompleted_tasks(config.todoist.api_token)) \
-        .filter(lambda x: equal_now_day(x['due_date_utc'])) \
-        .reject(lambda x: config.special_labels.waiting.id in x['labels']) \
+        .filter(lambda x: equal_now_day(x.due_date_utc)) \
+        .reject(lambda x: config.special_labels.waiting.id in x.labels) \
+        .map(lambda x: x.to_dict()) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
-        .find(lambda x: x['project_id'] in config.project_by_id.keys()) \
-        .value()
+        .map(lambda x: TodoistTask.from_dict(x)) \
+        .find(lambda x: x.project_id in config.project_by_id.keys()) \
+        .value()  # type: TodoistTask
     if not next_task:
         return None
 
-    next_project_id = next_task['project_id']
+    next_project_id = next_task.project_id
     next_project = config.project_by_id.get(next_project_id)
-    labels = next_task['labels']
+    labels = next_task.labels
 
     return {
         "project_id": next_project_id,
         "project_name": next_project and next_project.name,
         "labels": labels,
-        "content": next_task['content']
+        "content": next_task.content
     }
 
 
@@ -148,13 +149,14 @@ def create_daily_report(config):
             "completed_date": parser.parse(x["completed_date"])
         }
     )
+
     uncompleted_todoist_tasks = py_.map(
         api.fetch_uncompleted_tasks(config.todoist.api_token),
         lambda x: {
-            "project_id": x["project_id"],
-            "id": x["id"],
-            "name": x["content"],
-            "label_ids": x["labels"]
+            "project_id": x.project_id,
+            "id": x.id,
+            "name": x.content,
+            "label_ids": x.labels
         }
     )
 
@@ -272,22 +274,23 @@ def exec_completed(entity, config):
 
 def exec_todoist(config, body):
     # type: (Config, Any) -> bool
-    item = body["event_data"] if body['event_name'] != "reminder:fired" else \
-        py_.find(api.fetch_uncompleted_tasks(config.todoist.api_token),
-                 lambda x: x['id'] == body["event_data"]['item_id'])
+    item = TodoistTask.from_dict(body["event_data"]) \
+        if body['event_name'] != "reminder:fired" \
+        else py_.find(api.fetch_uncompleted_tasks(config.todoist.api_token),
+                      lambda x: x.id == body["event_data"]['item_id'])
 
-    project = config.project_by_id.get(item['project_id'])
-    labels = item['labels']  # type: List[int]
+    project = config.project_by_id.get(item.project_id)
+    labels = item.labels  # type: List[int]
 
     entity = Entity.from_dict({
         "event": body['event_name'],
-        "id": item["id"],
-        "project_id": item['project_id'],
+        "id": item.id,
+        "project_id": item.project_id,
         "project_name": project and project.name,
         "labels": labels,
-        "content": item['content'],
-        "parent_id": item['parent_id'],
-        "in_history": item['in_history']
+        "content": item.content,
+        "parent_id": item.parent_id,
+        "in_history": item.in_history
     })
 
     if not entity.project_name and entity.id not in py_.map(config.special_events, lambda x: x.id):
