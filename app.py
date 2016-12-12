@@ -13,7 +13,7 @@ from pytz import timezone
 from typing import List, Text
 
 from chalicelib import api
-from chalicelib.models import Entity, Config, Event, Project, TodoistTask
+from chalicelib.models import Entity, Config, Event, Project, TodoistTask, DailyReportStatus
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -70,16 +70,16 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
     target = to_identify(task_pid, task_name)
 
     if target in completed_task_identifies and target not in interrupted_task_identifies:
-        return "task_completed"
+        return DailyReportStatus.TASK_COMPLETED
     elif target in uncompleted_task_identifies and target not in interrupted_task_identifies:
-        return "task_not_completed"
+        return DailyReportStatus.TASK_NOT_COMPLETED
     elif target in completed_task_identifies and target in interrupted_task_identifies:
-        return "interrupted_task_completed"
+        return DailyReportStatus.INTERRUPTED_TASK_COMPLETED
     elif target in uncompleted_task_identifies and target in interrupted_task_identifies:
-        return "interrupted_task_not_completed"
+        return DailyReportStatus.INTERRUPTED_TASK_NOT_COMPLETED
     else:
         # Todoist does not has the task
-        return "interrupted_task_completed"
+        return DailyReportStatus.INTERRUPTED_TASK_COMPLETED
 
 
 # ------------------------
@@ -253,7 +253,7 @@ def exec_completed(entity, config):
             api.notify_slack(
                 "\n".join(py_.map(
                     create_daily_report(config),
-                    lambda x: config.daily_report_format_by_status[x["status"]].format(**x)
+                    lambda x: config.daily_report_format_by_status[x["status"].value].format(**x)
                 )),
                 config
             )

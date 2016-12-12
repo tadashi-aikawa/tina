@@ -3,19 +3,20 @@
 from __future__ import unicode_literals
 
 from typing import List, Optional, Dict, Text
+from enum import Enum
+
 from dictmixin.main import DictMixin
 
 TodoistEvent = Text
 LabelName = Text
 ProjectId = int
 
-"""
-* task_completed
-* task_not_completed
-* interrupted_task_completed
-* interrupted_task_not_completed
-"""
-DailyReportStatus = Text
+
+class DailyReportStatus(Enum):
+    TASK_COMPLETED = 'task_completed'
+    TASK_NOT_COMPLETED = 'task_not_completed'
+    INTERRUPTED_TASK_COMPLETED = 'interrupted_task_completed'
+    INTERRUPTED_TASK_NOT_COMPLETED = 'interrupted_task_not_completed'
 
 
 class Entity(DictMixin):
