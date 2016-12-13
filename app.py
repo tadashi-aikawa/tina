@@ -13,7 +13,7 @@ from pytz import timezone
 from typing import List, Text
 
 from chalicelib import api
-from chalicelib.models import Entity, Config, Event, Project, TodoistTask, DailyReportStatus
+from chalicelib.models import Entity, Config, Event, Project, TodoistTask, DailyReportStatus, DailyReportFormat
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -33,6 +33,16 @@ def ping():
 # ------------------------
 # parse
 # ------------------------
+
+def to_report_string(daily_report, report_format):
+    # type: (Any, DailyReportFormat) -> Text
+    s = daily_report['status']  # type: DailyReportStatus
+    return ":{}::{}: {}".format(
+        report_format.icon.interrupted if s.is_interrupted else report_format.icon.empty,
+        report_format.icon.uncompleted if not s.is_completed else report_format.icon.completed,
+        report_format.base.format(**daily_report)
+    )
+
 
 def to_project_id(project_by_id, toggl_project_id):
     # type: (Dict[ProjectId, Project], ProjectId) -> ProjectId
@@ -70,9 +80,9 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
     target = to_identify(task_pid, task_name)
 
     return DailyReportStatus.from_dict({
-        "includes_completed": target in completed_task_identifies,
-        "includes_uncompleted": target in uncompleted_task_identifies,
-        "is_interrupted": target in interrupted_task_identifies
+        "is_completed": target not in uncompleted_task_identifies,
+        "is_interrupted": target in interrupted_task_identifies or
+                          target not in completed_task_identifies + uncompleted_task_identifies
     })
 
 
@@ -247,7 +257,7 @@ def exec_completed(entity, config):
             api.notify_slack(
                 "\n".join(py_.map(
                     create_daily_report(config),
-                    lambda x: config.daily_report_format_by_status[x["status"].value].format(**x)
+                    lambda r: to_report_string(r, config.daily_report_format)
                 )),
                 config
             )

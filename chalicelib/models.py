@@ -12,10 +12,23 @@ ProjectId = int
 
 
 class DailyReportStatus(DictMixin):
-    def __init__(self, includes_completed, includes_uncompleted, is_interrupted):
-        self.includes_completed = includes_completed  # type: bool
-        self.includes_uncompleted = includes_uncompleted  # type: bool
+    def __init__(self, is_completed, is_interrupted):
+        self.is_completed = is_completed  # type: bool
         self.is_interrupted = is_interrupted  # type: bool
+
+
+class DailyReportIcons(DictMixin):
+    def __init__(self, completed, uncompleted, interrupted, empty):
+        self.completed = completed  # type: Text
+        self.uncompleted = uncompleted  # type: Text
+        self.interrupted = interrupted  # type: Text
+        self.empty = empty  # type: Text
+
+
+class DailyReportFormat(DictMixin):
+    def __init__(self, base, icon):
+        self.base = base  # type: Text
+        self.icon = DailyReportIcons.from_dict(icon)  # type: DailyReportIcons
 
 
 class Entity(DictMixin):
@@ -96,7 +109,7 @@ class Project(DictMixin):
 class Config(DictMixin):
     def __init__(self, timezone, remind_minutes_delta, slack, toggl, todoist,
                  special_events, message_format_by_event, next_message_format,
-                 daily_report_format_by_status, special_labels, project_by_id):
+                 daily_report_format, special_labels, project_by_id):
         self.timezone = timezone  # type: Text
         self.remind_minutes_delta = remind_minutes_delta  # type: int
         self.slack = Slack.from_dict(slack)  # type: Slack
@@ -105,7 +118,7 @@ class Config(DictMixin):
         self.special_events = SpecialEvents.from_dict(special_events)  # type: SpecialEvents
         self.message_format_by_event = message_format_by_event  # type: Dict[TodoistEvent, Text]
         self.next_message_format = next_message_format  # type: Text
-        self.daily_report_format_by_status = daily_report_format_by_status  # type: Dict[DailyReportStatus, Text]
+        self.daily_report_format = DailyReportFormat.from_dict(daily_report_format)  # type: DailyReportFormat
         self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
         self.project_by_id = Project.from_dict2dict(project_by_id)  # type: Dict[ProjectId, Project]
 
