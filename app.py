@@ -69,17 +69,11 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
 
     target = to_identify(task_pid, task_name)
 
-    if target in completed_task_identifies and target not in interrupted_task_identifies:
-        return DailyReportStatus.TASK_COMPLETED
-    elif target in uncompleted_task_identifies and target not in interrupted_task_identifies:
-        return DailyReportStatus.TASK_NOT_COMPLETED
-    elif target in completed_task_identifies and target in interrupted_task_identifies:
-        return DailyReportStatus.INTERRUPTED_TASK_COMPLETED
-    elif target in uncompleted_task_identifies and target in interrupted_task_identifies:
-        return DailyReportStatus.INTERRUPTED_TASK_NOT_COMPLETED
-    else:
-        # Todoist does not has the task
-        return DailyReportStatus.INTERRUPTED_TASK_COMPLETED
+    return DailyReportStatus.from_dict({
+        "includes_completed": target in completed_task_identifies,
+        "includes_uncompleted": target in uncompleted_task_identifies,
+        "is_interrupted": target in interrupted_task_identifies
+    })
 
 
 # ------------------------

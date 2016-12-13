@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 from typing import List, Optional, Dict, Text
-from enum import Enum
 
 from dictmixin.main import DictMixin
 
@@ -12,11 +11,11 @@ LabelName = Text
 ProjectId = int
 
 
-class DailyReportStatus(Enum):
-    TASK_COMPLETED = 'task_completed'
-    TASK_NOT_COMPLETED = 'task_not_completed'
-    INTERRUPTED_TASK_COMPLETED = 'interrupted_task_completed'
-    INTERRUPTED_TASK_NOT_COMPLETED = 'interrupted_task_not_completed'
+class DailyReportStatus(DictMixin):
+    def __init__(self, includes_completed, includes_uncompleted, is_interrupted):
+        self.includes_completed = includes_completed  # type: bool
+        self.includes_uncompleted = includes_uncompleted  # type: bool
+        self.is_interrupted = is_interrupted  # type: bool
 
 
 class Entity(DictMixin):
