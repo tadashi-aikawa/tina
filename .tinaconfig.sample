@@ -31,6 +31,7 @@ daily_report_format:
     completed: "white_check_mark"
     uncompleted: "ballot_box_with_check"
     interrupted: "ikiro"
+    waiting: "wigglecat"
     empty: "empty"
 
 

@@ -2,26 +2,59 @@
 
 from __future__ import unicode_literals
 
+from enum import Enum
 from typing import List, Optional, Dict, Text
+from datetime import datetime
+from dateutil import parser
 
 from dictmixin.main import DictMixin
+
+__all__ = [
+    'TodoistEvent',
+    'LabelName',
+    'ProjectId',
+    'Status',
+    'DailyReportStatus',
+    'DailyReportIcons',
+    'DailyReportFormat',
+    'Entity',
+    'Slack',
+    'Toggl',
+    'Todoist',
+    'Event',
+    'SpecialEvents',
+    'Label',
+    'SpecialLabels',
+    'Project',
+    'Config',
+    'TodoistApiTask',
+    'TodoistTask'
+]
 
 TodoistEvent = Text
 LabelName = Text
 ProjectId = int
 
 
+class Status(Enum):
+    COMPLETED = 'completed'
+    IN_PROGRESS = 'in_progress'
+    WAITING = 'waiting'
+
+
 class DailyReportStatus(DictMixin):
-    def __init__(self, is_completed, is_interrupted):
-        self.is_completed = is_completed  # type: bool
+    def __init__(self, status, is_interrupted):
+        # type: (Status, bool) -> DailyReportStatus
+        self.status = status  # type: Status
         self.is_interrupted = is_interrupted  # type: bool
 
 
 class DailyReportIcons(DictMixin):
-    def __init__(self, completed, uncompleted, interrupted, empty):
+    def __init__(self, completed, uncompleted, interrupted, waiting, empty):
         self.completed = completed  # type: Text
         self.uncompleted = uncompleted  # type: Text
         self.interrupted = interrupted  # type: Text
+        self.waiting = waiting  # type: Text
         self.empty = empty  # type: Text
 
 
@@ -123,7 +156,7 @@ class Config(DictMixin):
         self.project_by_id = Project.from_dict2dict(project_by_id)  # type: Dict[ProjectId, Project]
 
 
-class TodoistTask(DictMixin):
+class TodoistApiTask(DictMixin):
     def __init__(self, id, content, priority, project_id, labels, checked,
                  due_date_utc, date_added, date_lang,
                  parent_id, collapsed, date_string,
@@ -157,3 +190,14 @@ class TodoistTask(DictMixin):
         self.is_deleted = is_deleted  # type: int
         self.responsible_uid = responsible_uid  # type: int
         self.all_day = all_day  # type: bool
+
+
+class TodoistTask(DictMixin):
+    def __init__(self, id, name, project_id, is_waiting, completed_date=None):
+        # type: (int, Text, int, Dict, Text) -> TodoistTask
+        self.id = id  # type: int
+        self.name = name  # type: Text
+        self.project_id = project_id  # type: int
+        self.is_waiting = is_waiting  # type: bool
+        if completed_date:
+            self.completed_date = parser.parse(completed_date)  # type: datetime

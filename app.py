@@ -13,7 +13,7 @@ from pytz import timezone
 from typing import List, Text
 
 from chalicelib import api
-from chalicelib.models import Entity, Config, Event, Project, TodoistTask, DailyReportStatus, DailyReportFormat
+from chalicelib.models import *
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -39,7 +39,9 @@ def to_report_string(daily_report, report_format):
     s = daily_report['status']  # type: DailyReportStatus
     return ":{}::{}: {}".format(
         report_format.icon.interrupted if s.is_interrupted else report_format.icon.empty,
-        report_format.icon.uncompleted if not s.is_completed else report_format.icon.completed,
+        report_format.icon.completed if s.status == Status.COMPLETED \
+            else report_format.icon.uncompleted if s.status == Status.IN_PROGRESS \
+            else report_format.icon.waiting,
         report_format.base.format(**daily_report)
     )
 
@@ -57,30 +59,37 @@ def to_project_name(project_by_id, toggl_project_id):
 
 
 def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupted_tasks):
-    # (int, Text, List[any], List[any], List[any]) -> DailyReportStatus
-    # TODO: any => specific class
-
+    # type: (int, Text, List[TodoistTask], List[TodoistTask], List[any]) -> DailyReportStatus
     def to_identify(id, name):
         return "{}{}".format(id, name)
 
     completed_task_identifies = py_.map(
         completed_tasks,
-        lambda x: to_identify(x['project_id'], x['name'])
+        lambda x: to_identify(x.project_id, x.name)
     )
     uncompleted_task_identifies = py_.map(
         uncompleted_tasks,
-        lambda x: to_identify(x['project_id'], x['name'])
+        lambda x: to_identify(x.project_id, x.name)
     )
     interrupted_task_identifies = py_(interrupted_tasks) \
-        .map(lambda x: py_.find(completed_tasks + uncompleted_tasks, lambda y: x["object_id"] == y["id"])) \
+        .map(lambda x: py_.find(completed_tasks + uncompleted_tasks, lambda y: x["object_id"] == y.id)) \
         .filter() \
-        .map(lambda x: to_identify(x['project_id'], x['name'])) \
+        .map(lambda x: to_identify(x.project_id, x.name)) \
+        .value()
+    waiting_task_identifies = py_(uncompleted_tasks) \
+        .filter(lambda x: x.is_waiting) \
+        .map(lambda x: to_identify(x.project_id, x.name)) \
         .value()
 
     target = to_identify(task_pid, task_name)
 
+    # Warning: repeating tasks sometimes are included both completed_task and uncompleted_task.
+    # Order for conditional expression is very important.
     return DailyReportStatus.from_dict({
-        "is_completed": target not in uncompleted_task_identifies,
+        "status": Status.WAITING if target in waiting_task_identifies \
+            else Status.COMPLETED if target in completed_task_identifies \
+            else Status.IN_PROGRESS if target in uncompleted_task_identifies \
+            else Status.COMPLETED,
         "is_interrupted": target in interrupted_task_identifies or
                           target not in completed_task_identifies + uncompleted_task_identifies
     })
@@ -111,9 +120,9 @@ def fetch_next_item(config):
         .reject(lambda x: config.special_labels.waiting.id in x.labels) \
         .map(lambda x: x.to_dict()) \
         .sort_by_all(['priority', 'day_order'], [False, True]) \
-        .map(lambda x: TodoistTask.from_dict(x)) \
+        .map(lambda x: TodoistApiTask.from_dict(x)) \
         .find(lambda x: x.project_id in config.project_by_id.keys()) \
-        .value()  # type: TodoistTask
+        .value()  # type: TodoistApiTask
     if not next_task:
         return None
 
@@ -145,33 +154,33 @@ def create_daily_report(config):
     # todoist
     complete_todoist_tasks = py_.map(
         api.fetch_completed_tasks(config.todoist.api_token, minus3h(now).replace(hour=0, minute=0, second=0)),
-        lambda x: {
+        lambda x: TodoistTask.from_dict({
             "project_id": x["project_id"],
             "id": x["task_id"],
             "name": x["content"].split(" @")[0],
-            "label_names": x["content"].split(" @")[1:],
-            "completed_date": parser.parse(x["completed_date"])
-        }
+            "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:],
+            "completed_date": x["completed_date"]
+        })
     )
 
     uncompleted_todoist_tasks = py_.map(
         api.fetch_uncompleted_tasks(config.todoist.api_token),
-        lambda x: {
+        lambda x: TodoistTask.from_dict({
             "project_id": x.project_id,
             "id": x.id,
             "name": x.content,
-            "label_ids": x.labels
-        }
+            "is_waiting": config.special_labels.waiting.id in x.labels
+        })
     )
 
     # Interrupted task
     work_start_task = py_.find(complete_todoist_tasks,
-                               lambda x: x["id"] == config.special_events.start_work.id)
+                               lambda x: x.id == config.special_events.start_work.id)
     interrupted_tasks = py_.filter(
         api.fetch_activities(config.todoist.api_token,
                              '["item:added"]',
                              minus3h(now).replace(hour=0, minute=0, second=0)),
-        lambda x: parser.parse(x["event_date"]) > work_start_task["completed_date"]
+        lambda x: parser.parse(x["event_date"]) > work_start_task.completed_date
     )
 
     def reports2task(reports):
@@ -278,7 +287,7 @@ def exec_completed(entity, config):
 
 def exec_todoist(config, body):
     # type: (Config, Any) -> bool
-    item = TodoistTask.from_dict(body["event_data"]) \
+    item = TodoistApiTask.from_dict(body["event_data"]) \
         if body['event_name'] != "reminder:fired" \
         else py_.find(api.fetch_uncompleted_tasks(config.todoist.api_token),
                       lambda x: x.id == body["event_data"]['item_id'])

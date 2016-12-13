@@ -11,7 +11,7 @@ from pytz import utc
 from typing import List
 import requests
 
-from chalicelib.models import TodoistTask
+from chalicelib.models import *
 
 TOGGL_API_URL = 'https://www.toggl.com/api/v8'
 TOGGL_REPORT_API_URL = 'https://www.toggl.com/reports/api/v2'
@@ -42,7 +42,7 @@ def notify_slack(message, config):
 
 
 def fetch_uncompleted_tasks(todoist_token):
-    # type: (Text) -> List[TodoistTask]
+    # type: (Text) -> List[TodoistApiTask]
     items = requests.get(TODOIST_API_URL + '/sync', data={
         "token": todoist_token,
         "sync_token": "*",
@@ -50,7 +50,7 @@ def fetch_uncompleted_tasks(todoist_token):
     }).json()['items']
     return py_(items) \
         .reject("checked") \
-        .map(lambda x: TodoistTask.from_dict(x)) \
+        .map(lambda x: TodoistApiTask.from_dict(x)) \
         .value()
 
 
