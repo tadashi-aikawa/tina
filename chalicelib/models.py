@@ -79,10 +79,11 @@ class Entity(DictMixin):
 
 
 class Slack(DictMixin):
-    def __init__(self, channel, mention, url, icon_emoji=None, icon_url=None):
+    def __init__(self, channel, mention, url, username=None, icon_emoji=None, icon_url=None):
         self.channel = channel  # type: Text
         self.mention = mention  # type: Text
         self.url = url  # type: Text
+        self.username = username  # type: Optional[Text]
         self.icon_emoji = icon_emoji  # type: Optional[Text]
         self.icon_url = icon_url  # type: Optional[Text]
 

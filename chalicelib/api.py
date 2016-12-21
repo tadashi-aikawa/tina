@@ -13,6 +13,7 @@ import requests
 
 from chalicelib.models import *
 
+USERNAME_DEFAULT = "TINA"
 TOGGL_API_URL = 'https://www.toggl.com/api/v8'
 TOGGL_REPORT_API_URL = 'https://www.toggl.com/reports/api/v2'
 TODOIST_API_URL = 'https://todoist.com/API/v7'
@@ -27,7 +28,7 @@ def notify_slack(message, config):
     # type: (Text, Config) -> any
     payload = {
         "text": message,
-        "username": "TINA",
+        "username": config.slack.username or USERNAME_DEFAULT,
         "icon_emoji": config.slack.icon_emoji,
         "icon_url": config.slack.icon_url,
         "channel": config.slack.channel,
