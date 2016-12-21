@@ -2,7 +2,9 @@
 # General
 #---------------------------------
 timezone: Asia/Tokyo
-remind_minutes_delta: 10
+remind:
+  minutes_delta: 10
+  message_format: "It is 10 minutes before the {content}"
 
 todoist:
   api_token: "yyyyyyyyyyyyyyyyyyyyyyyyyyy"
@@ -11,6 +13,7 @@ toggl:
   workspace: 7777777
 slack:
   url: "https://slack-incoming-webhook-url"
+  username: "TINA if empty"
   icon_emoji: ":hoge:"
   icon_url: "https://slack-user-icon"
   mention: yourname
