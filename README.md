@@ -45,16 +45,22 @@ See [Setting up and Using Slack Webhooks - YouTube](https://www.youtube.com/watc
 
 ### Create `.tinaconfig` from `.tinaconfig.sample`.
 
-`message_format_by_event`, `next_message_format` can use below.
+You can use following variables in `message_format_by_event`, `next_message_format`, `remind.message_format` ...
 
-* `content`
-* `project_name`
+|   name       |      type     |
+|--------------|---------------|
+| event        | Text          |
+| project_name | Text          |
+| labels       | List[int]     |
+| content      | Text          |
 
-`daily_report_format_by_status` can use below.
+in `daily_report_format.base` ...
 
-* `elapsed`
-* `task`
-* `project_name`
+|   name             | type |
+|--------------------|------|
+| name               | Text |
+| project_name       | Text |
+| elapsed [minutes] | int  |
 
 ### Upload `.tinaconfig` to AWS S3
 
