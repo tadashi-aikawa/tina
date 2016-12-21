@@ -139,12 +139,18 @@ class Project(DictMixin):
         self.toggl_id = toggl_id  # type: Optional[int]
 
 
+class Remind(DictMixin):
+    def __init__(self, minutes_delta, message_format):
+        self.minutes_delta = minutes_delta  # type: int
+        self.message_format = message_format  # type: Text
+
+
 class Config(DictMixin):
-    def __init__(self, timezone, remind_minutes_delta, slack, toggl, todoist,
+    def __init__(self, timezone, remind, slack, toggl, todoist,
                  special_events, message_format_by_event, next_message_format,
                  daily_report_format, special_labels, project_by_id):
         self.timezone = timezone  # type: Text
-        self.remind_minutes_delta = remind_minutes_delta  # type: int
+        self.remind = Remind.from_dict(remind)  # type: Remind
         self.slack = Slack.from_dict(slack)  # type: Slack
         self.toggl = Toggl.from_dict(toggl)  # type: Toggl
         self.todoist = Todoist.from_dict(todoist)  # type: Todoist

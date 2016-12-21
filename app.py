@@ -226,7 +226,7 @@ def exec_other_events(entity, config):
 def exec_remind(entity, config):
     # type: (Entity, Config) -> bool
     r = api.notify_slack(
-        "@{}\n もうすぐ *{}* の時間だよ".format(config.slack.mention, entity.content),
+        "@{}".format(config.slack.mention) + "\n" + config.remind.message_format.format(**entity.to_dict()),
         config
     )
     return True
@@ -242,7 +242,7 @@ def exec_added(entity, config):
         r = api.add_reminder(
             config.todoist.api_token,
             entity.id,
-            begin_time - timedelta(minutes=config.remind_minutes_delta)
+            begin_time - timedelta(minutes=config.remind.minutes_delta)
         )
         if not r:
             return False
