@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Text
 from datetime import datetime
 from dateutil import parser
 
-from dictmixin.main import DictMixin
+from dictmixin import DictMixin
 
 __all__ = [
     'TodoistEvent',

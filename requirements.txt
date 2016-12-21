@@ -5,4 +5,4 @@ pydash==3.4.7
 pytz==2016.7
 typing==3.5.2.2
 enum34==1.1.6
-git+https://github.com/tadashi-aikawa/dictmixin@0.3.0
+dictmixin
