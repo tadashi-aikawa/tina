@@ -206,5 +206,4 @@ class TodoistTask(DictMixin):
         self.name = name  # type: Text
         self.project_id = project_id  # type: int
         self.is_waiting = is_waiting  # type: bool
-        if completed_date:
-            self.completed_date = parser.parse(completed_date)  # type: datetime
+        self.completed_date = parser.parse(completed_date) if completed_date else None  # type: Optional[datetime]
