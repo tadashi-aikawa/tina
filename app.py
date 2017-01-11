@@ -10,7 +10,7 @@ from chalice import Chalice
 from dateutil import parser
 from pydash import py_
 from pytz import timezone
-from typing import List, Text
+from typing import List, Text, Any, Dict
 
 from chalicelib import api
 from chalicelib.models import *
