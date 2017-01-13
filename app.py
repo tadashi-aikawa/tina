@@ -61,7 +61,8 @@ def to_project_name(project_by_id, toggl_project_id):
 def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupted_tasks):
     # type: (int, Text, List[TodoistTask], List[TodoistTask], List[any]) -> DailyReportStatus
     def to_identify(id, name):
-        return "{}{}".format(id, name)
+        # Remove emoji (ex. -> :fire:)
+        return re.sub(r' *:[^:]+: *', '', "{}{}".format(id, name))
 
     completed_task_identifies = py_.map(
         completed_tasks,
