@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Text
 from datetime import datetime
 from dateutil import parser
 
-from dictmixin import DictMixin
+from owlmixin import OwlMixin
 
 __all__ = [
     'TodoistEvent',
@@ -42,14 +42,13 @@ class Status(Enum):
     WAITING = 'waiting'
 
 
-class DailyReportStatus(DictMixin):
+class DailyReportStatus(OwlMixin):
     def __init__(self, status, is_interrupted):
-        # type: (Status, bool) -> DailyReportStatus
         self.status = status  # type: Status
         self.is_interrupted = is_interrupted  # type: bool
 
 
-class DailyReportIcons(DictMixin):
+class DailyReportIcons(OwlMixin):
     def __init__(self, completed, uncompleted, interrupted, waiting, empty):
         self.completed = completed  # type: Text
         self.uncompleted = uncompleted  # type: Text
@@ -58,13 +57,13 @@ class DailyReportIcons(DictMixin):
         self.empty = empty  # type: Text
 
 
-class DailyReportFormat(DictMixin):
+class DailyReportFormat(OwlMixin):
     def __init__(self, base, icon):
         self.base = base  # type: Text
         self.icon = DailyReportIcons.from_dict(icon)  # type: DailyReportIcons
 
 
-class Entity(DictMixin):
+class Entity(OwlMixin):
     def __init__(self, event, id, project_id,
                  project_name, labels, content,
                  parent_id, in_history):
@@ -78,7 +77,7 @@ class Entity(DictMixin):
         self.in_history = in_history  # type: int
 
 
-class Slack(DictMixin):
+class Slack(OwlMixin):
     def __init__(self, channel, mention, url, username=None, icon_emoji=None, icon_url=None):
         self.channel = channel  # type: Text
         self.mention = mention  # type: Text
@@ -88,24 +87,24 @@ class Slack(DictMixin):
         self.icon_url = icon_url  # type: Optional[Text]
 
 
-class Toggl(DictMixin):
+class Toggl(OwlMixin):
     def __init__(self, api_token, workspace):
         self.api_token = api_token  # type: Text
         self.workspace = workspace  # type: int
 
 
-class Todoist(DictMixin):
+class Todoist(OwlMixin):
     def __init__(self, api_token):
         self.api_token = api_token  # type: Text
 
 
-class Event(DictMixin):
+class Event(OwlMixin):
     def __init__(self, id, messages):
         self.id = id  # type: int
         self.messages = messages  # type: List[Text]
 
 
-class SpecialEvents(DictMixin):
+class SpecialEvents(OwlMixin):
     def __init__(self, start_work, lunch_start, lunch_end,
                  must_task_completed,  leave_work):
         self.start_work = Event.from_dict(start_work)  # type: Event
@@ -123,30 +122,30 @@ class SpecialEvents(DictMixin):
         return None
 
 
-class Label(DictMixin):
+class Label(OwlMixin):
     def __init__(self, id, name):
         self.id = id  # type: int
         self.name = name  # type: Text
 
 
-class SpecialLabels(DictMixin):
+class SpecialLabels(OwlMixin):
     def __init__(self, waiting):
         self.waiting = Label.from_dict(waiting)  # type: Label
 
 
-class Project(DictMixin):
+class Project(OwlMixin):
     def __init__(self, name, toggl_id=None):
         self.name = name  # type: Text
         self.toggl_id = toggl_id  # type: Optional[int]
 
 
-class Remind(DictMixin):
+class Remind(OwlMixin):
     def __init__(self, minutes_delta, message_format):
         self.minutes_delta = minutes_delta  # type: int
         self.message_format = message_format  # type: Text
 
 
-class Config(DictMixin):
+class Config(OwlMixin):
     def __init__(self, timezone, remind, slack, toggl, todoist,
                  special_events, message_format_by_event, next_message_format,
                  daily_report_format, special_labels, project_by_id):
@@ -160,10 +159,10 @@ class Config(DictMixin):
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format = DailyReportFormat.from_dict(daily_report_format)  # type: DailyReportFormat
         self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
-        self.project_by_id = Project.from_dict2dict(project_by_id)  # type: Dict[ProjectId, Project]
+        self.project_by_id = Project.from_dicts_by_key(project_by_id)  # type: Dict[ProjectId, Project]
 
 
-class TodoistApiTask(DictMixin):
+class TodoistApiTask(OwlMixin):
     def __init__(self, id, content, priority, project_id, labels, checked,
                  due_date_utc, date_added, date_lang,
                  parent_id, collapsed, date_string,
@@ -199,9 +198,8 @@ class TodoistApiTask(DictMixin):
         self.all_day = all_day  # type: bool
 
 
-class TodoistTask(DictMixin):
+class TodoistTask(OwlMixin):
     def __init__(self, id, name, project_id, is_waiting, completed_date=None):
-        # type: (int, Text, int, Dict, Text) -> TodoistTask
         self.id = id  # type: int
         self.name = name  # type: Text
         self.project_id = project_id  # type: int

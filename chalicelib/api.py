@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+
+from owlmixin import TList
 from typing import Text
 
 import json
@@ -43,16 +45,13 @@ def notify_slack(message, config):
 
 
 def fetch_uncompleted_tasks(todoist_token):
-    # type: (Text) -> List[TodoistApiTask]
+    # type: (Text) -> TList[TodoistApiTask]
     items = requests.get(TODOIST_API_URL + '/sync', data={
         "token": todoist_token,
         "sync_token": "*",
         "resource_types": '["items"]'
     }).json()['items']
-    return py_(items) \
-        .reject("checked") \
-        .map(lambda x: TodoistApiTask.from_dict(x)) \
-        .value()
+    return TodoistApiTask.from_dicts(items).reject(lambda x: x.checked)
 
 
 def fetch_completed_tasks(todoist_token, since):

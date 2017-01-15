@@ -19,6 +19,7 @@ from chalicelib.models import *
 REGION = 'ap-northeast-1'
 BUCKET = 'mamansoft-tina'
 KEY = '.tinaconfig'
+SCHEDULED_TASKS = 'scheduled-tasks'
 
 S3 = boto3.client('s3', region_name=REGION)
 app = Chalice(app_name='tina')
@@ -116,14 +117,13 @@ def fetch_next_item(config):
         # 3:00 - 3:00
         return minus3h(x).date() == minus3h(now).date()
 
-    next_task = py_(api.fetch_uncompleted_tasks(config.todoist.api_token)) \
+    next_task = api.fetch_uncompleted_tasks(config.todoist.api_token) \
         .filter(lambda x: equal_now_day(x.due_date_utc)) \
         .reject(lambda x: config.special_labels.waiting.id in x.labels) \
-        .map(lambda x: x.to_dict()) \
-        .sort_by_all(['priority', 'day_order'], [False, True]) \
-        .map(lambda x: TodoistApiTask.from_dict(x)) \
-        .find(lambda x: x.project_id in config.project_by_id.keys()) \
-        .value()  # type: TodoistApiTask
+        .order_by(lambda x: x.day_order) \
+        .order_by(lambda x: x.priority, reverse=True) \
+        .find(lambda x: x.project_id in config.project_by_id.keys())
+    """:type: TodoistApiTask"""
     if not next_task:
         return None
 
