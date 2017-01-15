@@ -102,23 +102,40 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
 # ------------------------
 
 
+def in_special_events(config, task_id):
+    # type: (Config, int) -> bool
+    return task_id in [v['id'] for k, v in config.special_events.to_dict().items()]
+
+
+def is_valid_project(config, project_id):
+    # type: (Config, int) -> bool
+    return project_id in config.project_by_id.keys()
+
+
+def now(tz):
+    # type: (Text) -> datetime
+    return datetime.now(timezone(tz))
+
+
 def minus3h(dt):
     # type: (datetime) -> datetime
     return dt - timedelta(hours=3)
 
 
+def equal_now_day(utcstr, tz):
+    # type: (Text, Text) -> bool
+    if not utcstr:
+        return False
+    x = parser.parse(utcstr).astimezone(timezone(tz))
+
+    # 3:00 - 3:00
+    return minus3h(x).date() == minus3h(now(tz)).date()
+
+
 def fetch_next_item(config):
     # type: (Config) -> any
-    def equal_now_day(utcstr):
-        if not utcstr:
-            return False
-        x = parser.parse(utcstr).astimezone(timezone(config.timezone))
-        now = datetime.now(timezone(config.timezone))
-        # 3:00 - 3:00
-        return minus3h(x).date() == minus3h(now).date()
-
     next_task = api.fetch_uncompleted_tasks(config.todoist.api_token) \
-        .filter(lambda x: equal_now_day(x.due_date_utc)) \
+        .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
         .reject(lambda x: config.special_labels.waiting.id in x.labels) \
         .order_by(lambda x: x.day_order) \
         .order_by(lambda x: x.priority, reverse=True) \
@@ -256,7 +273,7 @@ def exec_completed(entity, config):
     # type: (Entity, Config) -> bool
 
     # Ignore the task which is child task and closed in past
-    if entity.in_history == 1 and entity.parent_id:
+    if entity.in_history and entity.parent_id:
         return True
 
     special_event = config.special_events.find_by_id(entity.id)  # type: Event
@@ -269,6 +286,25 @@ def exec_completed(entity, config):
                     create_daily_report(config),
                     lambda r: to_report_string(r, config.daily_report_format)
                 )),
+                config
+            )
+        elif special_event == config.special_events.start_work:
+            api.notify_slack(
+                api.fetch_uncompleted_tasks(config.todoist.api_token) \
+                   .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
+                   .filter(lambda x:
+                           is_valid_project(config, x.project_id) or
+                           in_special_events(config, x.id)
+                           ) \
+                   .order_by(lambda x: x.day_order) \
+                   .order_by(lambda x: x.priority, reverse=True) \
+                   .map(lambda x:
+                        x.content if not is_valid_project(config, x.project_id) \
+                        else config.morning_report_format.base.format(
+                            name=x.content,
+                            project_name=config.project_by_id[x.project_id].name
+                        )) \
+                   .join("\n"),
                 config
             )
     else:
@@ -307,7 +343,7 @@ def exec_todoist(config, body):
         "in_history": item.in_history
     })
 
-    if not entity.project_name and entity.id not in py_.map(config.special_events, lambda x: x.id):
+    if not entity.project_name and not in_special_events(config, entity.id):
         print('There is no project matched project_id {}'.format(entity.project_id))
         return True
 

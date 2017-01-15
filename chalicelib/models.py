@@ -63,6 +63,11 @@ class DailyReportFormat(OwlMixin):
         self.icon = DailyReportIcons.from_dict(icon)  # type: DailyReportIcons
 
 
+class MorningReportFormat(OwlMixin):
+    def __init__(self, base):
+        self.base = base  # type: Text
+
+
 class Entity(OwlMixin):
     def __init__(self, event, id, project_id,
                  project_name, labels, content,
@@ -74,7 +79,12 @@ class Entity(OwlMixin):
         self.labels = labels  # type: List[int]
         self.content = content  # type: Text
         self.parent_id = parent_id  # type: Optional[int]
-        self.in_history = in_history  # type: int
+        self._in_history = in_history  # type: int
+
+    @property
+    def in_history(self):
+        # type: () -> bool
+        return self._in_history == 1
 
 
 class Slack(OwlMixin):
@@ -148,7 +158,7 @@ class Remind(OwlMixin):
 class Config(OwlMixin):
     def __init__(self, timezone, remind, slack, toggl, todoist,
                  special_events, message_format_by_event, next_message_format,
-                 daily_report_format, special_labels, project_by_id):
+                 daily_report_format, morning_report_format, special_labels, project_by_id):
         self.timezone = timezone  # type: Text
         self.remind = Remind.from_dict(remind)  # type: Remind
         self.slack = Slack.from_dict(slack)  # type: Slack
@@ -158,6 +168,7 @@ class Config(OwlMixin):
         self.message_format_by_event = message_format_by_event  # type: Dict[TodoistEvent, Text]
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format = DailyReportFormat.from_dict(daily_report_format)  # type: DailyReportFormat
+        self.morning_report_format = MorningReportFormat.from_dict(morning_report_format)  # type: MorningReportFormat
         self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
         self.project_by_id = Project.from_dicts_by_key(project_by_id)  # type: Dict[ProjectId, Project]
 
@@ -176,14 +187,14 @@ class TodoistApiTask(OwlMixin):
         self.labels = labels  # type: List[int]
         self.checked = checked  # type: int
 
-        self.due_date = due_date  # type: Text
+        self.due_date = due_date  # type: Optional[Text]
         self.due_date_utc = due_date_utc  # type: Text
         self.date_added = date_added  # type: Text
         self.date_lang = date_lang  # type: Text
         self.date_string = date_string  # type: Text
 
-        self.day_order = day_order  # type: int
-        self.item_order = item_order  # type: int
+        self.day_order = day_order  # type: Optional[int]
+        self.item_order = item_order  # type: Optional[int]
         self.parent_id = parent_id  # type: int
         self.collapsed = collapsed  # type: int
 
@@ -195,7 +206,7 @@ class TodoistApiTask(OwlMixin):
         self.user_id = user_id  # type: int
         self.is_deleted = is_deleted  # type: int
         self.responsible_uid = responsible_uid  # type: int
-        self.all_day = all_day  # type: bool
+        self.all_day = all_day  # type: Optional[bool]
 
 
 class TodoistTask(OwlMixin):

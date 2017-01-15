@@ -28,6 +28,8 @@ message_format_by_event:
   "item:added": ":new: *{content}* - `{project_name}`"
   "item:deleted": ":wastebasket: *{content}* - `{project_name}`"
   "item:completed": ":heavy_check_mark: *{content}* - `{project_name}`"
+morning_report_format:
+  base: ":ballot_box_with_check: {name} - `{project_name}`"
 daily_report_format:
   base: "`{elapsed:3}分` {name} - `{project_name}`"
   icon:

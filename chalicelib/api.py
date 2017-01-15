@@ -3,14 +3,12 @@
 from __future__ import unicode_literals
 
 from owlmixin import TList
+from typing import List
 from typing import Text
 
 import json
 import uuid
-
-from pydash import py_
 from pytz import utc
-from typing import List
 import requests
 
 from chalicelib.models import *

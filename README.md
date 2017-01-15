@@ -62,6 +62,14 @@ in `daily_report_format.base` ...
 | project_name       | Text |
 | elapsed [minutes] | int  |
 
+in `morning_report_format.base` ...
+
+|   name             | type |
+|--------------------|------|
+| name               | Text |
+| project_name       | Text |
+
+
 ### Upload `.tinaconfig` to AWS S3
 
 For example
