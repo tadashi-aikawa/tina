@@ -2,9 +2,9 @@
 
 from __future__ import unicode_literals
 
-import re
 from datetime import datetime, timedelta
 
+import re
 import boto3
 from chalice import Chalice
 from dateutil import parser
@@ -62,25 +62,25 @@ def to_project_name(project_by_id, toggl_project_id):
 def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupted_tasks):
     # type: (int, Text, List[TodoistTask], List[TodoistTask], List[any]) -> DailyReportStatus
     def to_identify(id, name):
-        # Remove emoji (ex. -> :fire:)
-        return re.sub(r' *:[^:]+: *', '', "{}{}".format(id, name))
+        # type: (int, Text) -> Text
+        return str(id) + name
 
     completed_task_identifies = py_.map(
         completed_tasks,
-        lambda x: to_identify(x.project_id, x.name)
+        lambda x: to_identify(x.project_id, x.name_without_emoji)
     )
     uncompleted_task_identifies = py_.map(
         uncompleted_tasks,
-        lambda x: to_identify(x.project_id, x.name)
+        lambda x: to_identify(x.project_id, x.name_without_emoji)
     )
     interrupted_task_identifies = py_(interrupted_tasks) \
         .map(lambda x: py_.find(completed_tasks + uncompleted_tasks, lambda y: x["object_id"] == y.id)) \
         .filter() \
-        .map(lambda x: to_identify(x.project_id, x.name)) \
+        .map(lambda x: to_identify(x.project_id, x.name_without_emoji)) \
         .value()
     waiting_task_identifies = py_(uncompleted_tasks) \
         .filter(lambda x: x.is_waiting) \
-        .map(lambda x: to_identify(x.project_id, x.name)) \
+        .map(lambda x: to_identify(x.project_id, x.name_without_emoji)) \
         .value()
 
     target = to_identify(task_pid, task_name)
@@ -100,7 +100,6 @@ def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupt
 # ------------------------
 # utility
 # ------------------------
-
 
 def in_special_events(config, task_id):
     # type: (Config, int) -> bool
@@ -320,7 +319,7 @@ def exec_completed(entity, config):
 
     # Toggl action
     current_entry = api.access_toggl('/time_entries/current', config.toggl.api_token).json()['data']
-    if not current_entry or current_entry['description'] != entity.content:
+    if not current_entry or current_entry['description'] != entity.content_without_emoji:
         return True
 
     api.access_toggl('/time_entries/{}/stop'.format(current_entry['id']), config.toggl.api_token)

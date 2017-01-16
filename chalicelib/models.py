@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import re
 from enum import Enum
 from typing import List, Optional, Dict, Text
 from datetime import datetime
@@ -34,6 +35,10 @@ __all__ = [
 TodoistEvent = Text
 LabelName = Text
 ProjectId = int
+
+
+def remove_emoji(content):
+    return re.sub(r' *:[^:]+:( +|$)', '', content)
 
 
 class Status(Enum):
@@ -80,6 +85,10 @@ class Entity(OwlMixin):
         self.content = content  # type: Text
         self.parent_id = parent_id  # type: Optional[int]
         self._in_history = in_history  # type: int
+
+    @property
+    def content_without_emoji(self):
+        return remove_emoji(self.content)
 
     @property
     def in_history(self):
@@ -216,3 +225,7 @@ class TodoistTask(OwlMixin):
         self.project_id = project_id  # type: int
         self.is_waiting = is_waiting  # type: bool
         self.completed_date = parser.parse(completed_date) if completed_date else None  # type: Optional[datetime]
+
+    @property
+    def name_without_emoji(self):
+        return remove_emoji(self.name)
