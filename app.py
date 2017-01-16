@@ -112,6 +112,11 @@ def is_valid_project(config, project_id):
     return project_id in config.project_by_id.keys()
 
 
+def is_measured_project(config, project_id):
+    # type: (Config, int) -> bool
+    return is_valid_project(config, project_id) and config.project_by_id[project_id].toggl_id is not None
+
+
 def now(tz):
     # type: (Text) -> datetime
     return datetime.now(timezone(tz))
@@ -293,13 +298,13 @@ def exec_completed(entity, config):
                 api.fetch_uncompleted_tasks(config.todoist.api_token) \
                    .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
                    .filter(lambda x:
-                           is_valid_project(config, x.project_id) or
+                           is_measured_project(config, x.project_id) or
                            in_special_events(config, x.id)
                            ) \
                    .order_by(lambda x: x.day_order) \
                    .order_by(lambda x: x.priority, reverse=True) \
                    .map(lambda x:
-                        x.content if not is_valid_project(config, x.project_id) \
+                        x.content if not is_measured_project(config, x.project_id) \
                         else config.morning_report_format.base.format(
                             name=x.content,
                             project_name=config.project_by_id[x.project_id].name
