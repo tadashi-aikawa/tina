@@ -149,4 +149,4 @@ def reminder_fired():
         config = Config.from_yaml(f)
     app.exec_todoist(config, body)
 
-item_completed()
+#item_completed()
