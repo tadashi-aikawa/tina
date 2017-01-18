@@ -136,8 +136,8 @@ def create_daily_report(config):
         "id": x["task_id"],
         "name": x["content"].split(" @")[0],
         "project_id": x["project_id"],
-        "project_name": config.project_by_id.get(x.project_id).name \
-            if config.project_by_id.get(x.project_id) else "なし",
+        "project_name": config.project_by_id.get(x["project_id"]).name \
+            if config.project_by_id.get(x["project_id"]) else "なし",
         "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:]
     })).filter(lambda x: is_measured_project(config, x.project_id))
     """:type: TList[TaskReport]"""
@@ -197,11 +197,11 @@ def create_daily_report(config):
     """:type: TList[TaskReport]"""
     unmeasured_interrupted_reports = uncompleted_todoist_reports \
         .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
-        .reject(lambda x: x.id in measured_interrupted_reports.map(lambda r: r.id)) \
-        .order_by(lambda x: x.elapsed, reverse=True)
+        .reject(lambda x: x.id in measured_interrupted_reports.map(lambda r: r.id))
     """:type: TList[TaskReport]"""
 
-    interrupted_reports = TList(measured_interrupted_reports + unmeasured_interrupted_reports)
+    interrupted_reports = TList(measured_interrupted_reports + unmeasured_interrupted_reports) \
+        .order_by(lambda x: x.elapsed, reverse=True)
 
     return scheduled_reports, interrupted_reports
 
