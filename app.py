@@ -126,6 +126,28 @@ def fetch_next_item(config):
     }
 
 
+def toggl_to_task_report(config, toggls, todoist_reports):
+    # type: (TList[TogglApiReport]) -> TList[TaskReport]
+
+    def toggl_to_report(toggl):
+        # type: (TogglApiReport) -> TaskReport
+        return TList(todoist_reports).find(
+            lambda x: to_project_id(config.project_by_id, toggl.pid) == x.project_id \
+                      and toggl.description == x.name_without_emoji
+        )
+
+    toggl = toggls[0]
+    report = toggl_to_report(toggl)
+    return TaskReport.from_dict({
+        "id": report.id if report else -1,
+        "name": report.name if report else toggl.description,
+        "project_id": to_project_id(config.project_by_id, toggl.pid),
+        "project_name": to_project_name(config.project_by_id, toggl.pid),
+        "is_waiting": report.is_waiting if report else False,
+        "elapsed": sum([x.dur / 1000 / 60 for x in toggls])
+    })
+
+
 def create_daily_report(config):
     # type: (Config) -> Tuple[TList[TaskReport], TList[TaskReport]]
 
@@ -138,7 +160,8 @@ def create_daily_report(config):
         "project_id": x["project_id"],
         "project_name": config.project_by_id.get(x["project_id"]).name \
             if config.project_by_id.get(x["project_id"]) else "なし",
-        "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:]
+        "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:],
+        "completed_date": x["completed_date"]
     })).filter(lambda x: is_measured_project(config, x.project_id))
     """:type: TList[TaskReport]"""
 
@@ -155,29 +178,28 @@ def create_daily_report(config):
     """:type: TList[TaskReport]"""
 
     # toggl
-    def toggl_to_report(toggl):
-        # type: (TogglApiReport) -> TaskReport
-        return TList(completed_todoist_reports + uncompleted_todoist_reports).find(
-            lambda x: to_project_id(config.project_by_id, toggl.pid) == x.project_id \
-                      and toggl.description == x.name_without_emoji
-        )
-
     toggl_reports = api.fetch_reports(workspace_id=config.toggl.workspace,
                                      since=minus3h(now(config.timezone)),
                                      api_token=config.toggl.api_token) \
         .group_by(lambda x: x.task_uniq_key) \
         .to_values() \
-        .map(lambda xs: TaskReport.from_dict({
-            "id": toggl_to_report(xs[0]).id if toggl_to_report(xs[0]) else -1,
-            "name": toggl_to_report(xs[0]).name if toggl_to_report(xs[0]) else xs[0].description,
-            "project_id": to_project_id(config.project_by_id, xs[0].pid),
-            "project_name": to_project_name(config.project_by_id, xs[0].pid),
-            "is_waiting": toggl_to_report(xs[0]).is_waiting if toggl_to_report(xs[0]) else False,
-            "elapsed": sum([x.dur / 1000 / 60 for x in xs])
-        }))
+        .map(lambda xs: toggl_to_task_report(config, xs, completed_todoist_reports + uncompleted_todoist_reports))
     """:type: TList[TaskReport]"""
 
+    work_start_date = completed_todoist_reports \
+        .find(lambda x: x.id == config.special_events.start_work.id) \
+        .completed_date
+    """:type: datetime"""
+
+    # ---
     s3_obj = S3.get_object(Bucket=BUCKET, Key=SCHEDULED_TASKS)
+    # The task completed before scheduling is the scheduled
+    done_before_scheduled = toggl_reports \
+        .filter(lambda x: completed_todoist_reports.find(lambda r: r.id == x.id)) \
+        .filter(lambda x: completed_todoist_reports.find(lambda r: r.id == x.id).completed_date < work_start_date)
+
+    # done_before_scheduled
+
     scheduled_reports = TodoistApiTask.from_json_to_list(s3_obj['Body'].read()) \
         .map(lambda x: TaskReport.from_dict({
             "id": x.id,
@@ -189,15 +211,18 @@ def create_daily_report(config):
             "elapsed": toggl_reports.find(lambda r: r.id == x.id).elapsed \
                 if toggl_reports.find(lambda r: r.id == x.id) else 0
         })) \
+        .concat(done_before_scheduled) \
         .filter(lambda x: is_measured_project(config, x.project_id)) \
         .order_by(lambda x: x.elapsed, reverse=True)
     """:type: TList[TaskReport]"""
 
-    measured_interrupted_reports = toggl_reports.reject(lambda x: x.id in scheduled_reports.map(lambda r: r.id))
+    measured_interrupted_reports = toggl_reports \
+        .reject(lambda x: x.id in scheduled_reports.map(lambda r: r.id))
     """:type: TList[TaskReport]"""
     unmeasured_interrupted_reports = uncompleted_todoist_reports \
         .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
-        .reject(lambda x: x.id in measured_interrupted_reports.map(lambda r: r.id))
+        .reject(lambda x: x.id in measured_interrupted_reports.map(lambda r: r.id)) \
+        .reject(lambda x: x.id in scheduled_reports.map(lambda r: r.id))
     """:type: TList[TaskReport]"""
 
     interrupted_reports = TList(measured_interrupted_reports + unmeasured_interrupted_reports) \
@@ -259,16 +284,18 @@ def exec_completed(entity, config):
         # TODO: Create independent function
         api.notify_slack(py_.sample(special_event.messages), config)
         if special_event == config.special_events.leave_work:
-            scheduled, interrupted = create_daily_report(config)
+            scheduled, interrupted = create_daily_report(config)  # type: TList[TaskReport]
             report_message = """
-◆朝に予定したタスク
-{}
+◆朝に予定したタスク `{total_scheduled}時間`
+{scheduled}
 
-◆割り込みで入ったタスク
-{}
+◆割り込みで入ったタスク `{total_interrupted}時間`
+{interrupted}
             """.format(
-                scheduled.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
-                interrupted.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
+                total_scheduled=round(scheduled.sum_by(lambda x: x.elapsed) / 60.0, 1),
+                total_interrupted=round(interrupted.sum_by(lambda x: x.elapsed) / 60.0, 1),
+                scheduled=scheduled.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
+                interrupted=interrupted.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
             )
             api.notify_slack(report_message, config)
         elif special_event == config.special_events.start_work:
