@@ -45,17 +45,20 @@ def remove_emoji(content):
 class Status(Enum):
     COMPLETED = 'completed'
     IN_PROGRESS = 'in_progress'
+    NOT_STARTED_YET = 'not_started_yet'
     WAITING = 'waiting'
     RE_SCHEDULED = 're_scheduled'
     REMOVED = 'removed'
 
 
 class DailyReportIcons(OwlMixin):
-    def __init__(self, completed, uncompleted, interrupted, waiting, empty):
+    def __init__(self, completed, uncompleted, removed, re_scheduled, waiting, not_start_yet, empty):
         self.completed = completed  # type: Text
         self.uncompleted = uncompleted  # type: Text
-        self.interrupted = interrupted  # type: Text
+        self.removed = removed  # type: Text
+        self.re_scheduled = re_scheduled  # type: Text
         self.waiting = waiting  # type: Text
+        self.not_start_yet = not_start_yet  # type: Text
         self.empty = empty  # type: Text
 
 

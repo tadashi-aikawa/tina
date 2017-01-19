@@ -42,6 +42,9 @@ def to_report_string(daily_report, report_format):
     return ":{}: {}".format(
         report_format.icon.completed if status == Status.COMPLETED \
             else report_format.icon.uncompleted if status == Status.IN_PROGRESS \
+            else report_format.icon.re_scheduled if status == Status.RE_SCHEDULED \
+            else report_format.icon.removed if status == Status.REMOVED \
+            else report_format.icon.not_start_yet if status == Status.NOT_STARTED_YET \
             else report_format.icon.waiting,
         report_format.base.format(
             name=daily_report.name,
@@ -92,11 +95,17 @@ def minus3h(dt):
     return dt - timedelta(hours=3)
 
 
+def to_datetime(utcstr, tz):
+    # type: (Text, Text) -> datetime
+    return parser.parse(utcstr).astimezone(timezone(tz))
+
+
 def equal_now_day(utcstr, tz):
     # type: (Text, Text) -> bool
     if not utcstr:
         return False
-    x = parser.parse(utcstr).astimezone(timezone(tz))
+
+    x = to_datetime(utcstr, tz)
 
     # 3:00 - 3:00
     return minus3h(x).date() == minus3h(now(tz)).date()
@@ -207,10 +216,26 @@ def create_daily_report(config):
                 if config.project_by_id.get(x.project_id) else "なし",
             "is_waiting": config.special_labels.waiting.id in x.labels,
             "elapsed": toggl_reports.find(lambda r: r.id == x.id).elapsed \
-                if toggl_reports.find(lambda r: r.id == x.id) else 0
-        })) \
+                if toggl_reports.find(lambda r: r.id == x.id) else 0,
+            "due_date_utc": x.due_date_utc
+            })) \
         .concat(done_before_scheduled) \
         .filter(lambda x: is_measured_project(config, x.project_id)) \
+        .map(lambda x: TaskReport.from_dict({
+            "id": x.id,
+            "name": x.name,
+            "project_id": x.project_id,
+            "project_name": x.project_name,
+            "is_waiting": x.is_waiting,
+            "elapsed": x.elapsed,
+            "due_date_utc": x.due_date_utc,
+            "status": Status.COMPLETED if x.id in completed_todoist_reports.map(lambda x: x.id) \
+                else Status.REMOVED if not x.id in uncompleted_todoist_reports.map(lambda x: x.id) \
+                else Status.RE_SCHEDULED if to_datetime(x.due_date_utc, config.timezone).day != minus3h(now(config.timezone)).day \
+                else Status.WAITING if x.is_waiting \
+                else Status.NOT_STARTED_YET if x.elapsed == 0 \
+                else Status.IN_PROGRESS
+        })) \
         .order_by(lambda x: x.elapsed, reverse=True)
     """:type: TList[TaskReport]"""
 
@@ -224,6 +249,21 @@ def create_daily_report(config):
     """:type: TList[TaskReport]"""
 
     interrupted_reports = TList(measured_interrupted_reports + unmeasured_interrupted_reports) \
+        .map(lambda x: TaskReport.from_dict({
+            "id": x.id,
+            "name": x.name,
+            "project_id": x.project_id,
+            "project_name": x.project_name,
+            "is_waiting": x.is_waiting,
+            "elapsed": x.elapsed,
+            "completed_date": x.completed_date,
+            "due_date_utc": x.due_date_utc,
+            "status": Status.COMPLETED if x.id in completed_todoist_reports.map(lambda x: x.id) \
+                else Status.COMPLETED if not x.id in uncompleted_todoist_reports.map(lambda x: x.id) \
+                else Status.WAITING if x.is_waiting \
+                else Status.NOT_STARTED_YET if x.elapsed == 0 \
+                else Status.IN_PROGRESS
+        })) \
         .order_by(lambda x: x.elapsed, reverse=True)
 
     return scheduled_reports, interrupted_reports
