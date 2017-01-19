@@ -324,10 +324,13 @@ def exec_completed(entity, config):
         if special_event == config.special_events.leave_work:
             scheduled, interrupted = create_daily_report(config)  # type: TList[TaskReport]
             report_message = """
-◆朝に予定したタスク `{total_scheduled}時間`
+:spiral_calendar_pad: *朝に予定したタスク* `{total_scheduled}時間`
+
 {scheduled}
 
-◆割り込みで入ったタスク `{total_interrupted}時間`
+
+:ikiro: *割り込みで入ったタスク* `{total_interrupted}時間`
+
 {interrupted}
             """.format(
                 total_scheduled=round(scheduled.sum_by(lambda x: x.elapsed) / 60.0, 1),
