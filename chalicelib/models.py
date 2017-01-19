@@ -236,16 +236,16 @@ class TodoistApiTask(OwlMixin):
 
 
 class TaskReport(OwlMixin):
-    def __init__(self, id, name, project_id, project_name, is_waiting,
-                 completed_date=None, due_date_utc=None, elapsed=None, status=None):
+    def __init__(self, id, name, project_id, project_name, is_waiting, elapsed=0,
+                 completed_date=None, due_date_utc=None, status=None):
         self.id = id  # type: int
         self.name = name  # type: Text
         self.project_id = project_id  # type: int
         self.project_name = project_name  # type: Text
         self.is_waiting = is_waiting  # type: bool
+        self.elapsed = elapsed  # type: int
         self.completed_date = completed_date  # type: Optional[datetime]
         self.due_date_utc = due_date_utc  # type: Optional[Text]
-        self.elapsed = elapsed  # type: Optional[int]
         self.status = status  # type: Optional[Status]
 
     @property

@@ -196,9 +196,7 @@ def create_daily_report(config):
     # The task completed before scheduling is the scheduled
     done_before_scheduled = toggl_reports \
         .filter(lambda x: completed_todoist_reports.find(lambda r: r.id == x.id)) \
-        .filter(lambda x: completed_todoist_reports.find(lambda r: r.id == x.id).completed_date < work_start_date)
-
-    # done_before_scheduled
+        .filter(lambda x: completed_todoist_reports.find(lambda r: r.id == x.id).completed_date <= work_start_date)
 
     scheduled_reports = TodoistApiTask.from_json_to_list(s3_obj['Body'].read()) \
         .map(lambda x: TaskReport.from_dict({
