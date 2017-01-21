@@ -87,7 +87,7 @@ def is_measured_project(config, project_id):
 
 def now(tz):
     # type: (Text) -> datetime
-    return datetime.now(timezone(tz)) - timedelta(days=1)
+    return datetime.now(timezone(tz))
 
 
 def minus3h(dt):
