@@ -4,11 +4,11 @@ from __future__ import unicode_literals
 
 import re
 from enum import Enum
-from typing import List, Optional, Dict, Text
+from typing import List, Optional, Text
 from datetime import datetime
 from dateutil import parser
 
-from owlmixin import OwlMixin
+from owlmixin import OwlMixin, TDict, TList
 
 __all__ = [
     'TodoistEvent',
@@ -81,7 +81,7 @@ class Entity(OwlMixin):
         self.id = id  # type: int
         self.project_id = project_id  # type: int
         self.project_name = project_name  # type: Text
-        self.labels = labels  # type: List[int]
+        self.labels = TList(labels)  # type: TList[int]
         self.content = content  # type: Text
         self.parent_id = parent_id  # type: Optional[int]
         self._in_history = in_history  # type: int
@@ -120,7 +120,7 @@ class Todoist(OwlMixin):
 class Event(OwlMixin):
     def __init__(self, id, messages):
         self.id = id  # type: int
-        self.messages = messages  # type: List[Text]
+        self.messages = TList(messages)  # type: TList[Text]
 
 
 class SpecialEvents(OwlMixin):
@@ -174,12 +174,12 @@ class Config(OwlMixin):
         self.toggl = Toggl.from_dict(toggl)  # type: Toggl
         self.todoist = Todoist.from_dict(todoist)  # type: Todoist
         self.special_events = SpecialEvents.from_dict(special_events)  # type: SpecialEvents
-        self.message_format_by_event = message_format_by_event  # type: Dict[TodoistEvent, Text]
+        self.message_format_by_event = TDict(message_format_by_event)  # type: TDict[TodoistEvent, Text]
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format = DailyReportFormat.from_dict(daily_report_format)  # type: DailyReportFormat
         self.morning_report_format = MorningReportFormat.from_dict(morning_report_format)  # type: MorningReportFormat
         self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
-        self.project_by_id = Project.from_dicts_by_key(project_by_id)  # type: Dict[ProjectId, Project]
+        self.project_by_id = Project.from_dicts_by_key(project_by_id)  # type: TDict[ProjectId, Project]
 
 
 class TogglApiReport(OwlMixin):
@@ -203,7 +203,7 @@ class TogglApiDetail(OwlMixin):
     def __init__(self, total_count, per_page, data, **extra):
         self.total_count = total_count  # type: int
         self.per_page = per_page  # type: int
-        self.data = TogglApiReport.from_dicts(data)  # type: List[TogglApiReport]
+        self.data = TogglApiReport.from_dicts(data)  # type: TList[TogglApiReport]
 
 
 class TodoistApiTask(OwlMixin):
@@ -216,7 +216,7 @@ class TodoistApiTask(OwlMixin):
         self.content = content  # type: Text
         self.priority = priority  # type: int
         self.project_id = project_id  # type: int
-        self.labels = labels  # type: List[int]
+        self.labels = TList(labels)  # type: TList[int]
         self.checked = checked  # type: int
 
         self.due_date = due_date  # type: Optional[Text]

@@ -3,7 +3,6 @@
 from __future__ import unicode_literals
 
 from owlmixin import TList
-from typing import List
 from typing import Text
 
 import json
@@ -13,6 +12,7 @@ import requests
 from datetime import datetime
 
 from chalicelib.models import *
+from fn import _
 
 USERNAME_DEFAULT = "TINA"
 TOGGL_API_URL = 'https://www.toggl.com/api/v8'
@@ -60,7 +60,7 @@ def fetch_uncompleted_tasks(todoist_token):
         "sync_token": "*",
         "resource_types": '["items"]'
     }).json()['items']
-    return TodoistApiTask.from_dicts(items).reject(lambda x: x.checked)
+    return TodoistApiTask.from_dicts(items).reject(_.checked)
 
 
 def fetch_completed_tasks(todoist_token, since):
