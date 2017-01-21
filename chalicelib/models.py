@@ -4,24 +4,25 @@ from __future__ import unicode_literals
 
 import re
 from enum import Enum
-from typing import List, Optional, Dict, Text
+from typing import List, Optional, Text
 from datetime import datetime
 from dateutil import parser
 
-from owlmixin import OwlMixin
+from owlmixin import OwlMixin, TDict, TList
 
 __all__ = [
     'TodoistEvent',
     'LabelName',
     'ProjectId',
     'Status',
-    'DailyReportStatus',
     'DailyReportIcons',
     'DailyReportFormat',
     'Entity',
     'Slack',
     'Toggl',
     'Todoist',
+    'TogglApiDetail',
+    'TogglApiReport',
     'Event',
     'SpecialEvents',
     'Label',
@@ -29,7 +30,7 @@ __all__ = [
     'Project',
     'Config',
     'TodoistApiTask',
-    'TodoistTask'
+    'TaskReport'
 ]
 
 TodoistEvent = Text
@@ -44,21 +45,20 @@ def remove_emoji(content):
 class Status(Enum):
     COMPLETED = 'completed'
     IN_PROGRESS = 'in_progress'
+    NOT_STARTED_YET = 'not_started_yet'
     WAITING = 'waiting'
-
-
-class DailyReportStatus(OwlMixin):
-    def __init__(self, status, is_interrupted):
-        self.status = status  # type: Status
-        self.is_interrupted = is_interrupted  # type: bool
+    RE_SCHEDULED = 're_scheduled'
+    REMOVED = 'removed'
 
 
 class DailyReportIcons(OwlMixin):
-    def __init__(self, completed, uncompleted, interrupted, waiting, empty):
+    def __init__(self, completed, uncompleted, removed, re_scheduled, waiting, not_start_yet, empty):
         self.completed = completed  # type: Text
         self.uncompleted = uncompleted  # type: Text
-        self.interrupted = interrupted  # type: Text
+        self.removed = removed  # type: Text
+        self.re_scheduled = re_scheduled  # type: Text
         self.waiting = waiting  # type: Text
+        self.not_start_yet = not_start_yet  # type: Text
         self.empty = empty  # type: Text
 
 
@@ -81,7 +81,7 @@ class Entity(OwlMixin):
         self.id = id  # type: int
         self.project_id = project_id  # type: int
         self.project_name = project_name  # type: Text
-        self.labels = labels  # type: List[int]
+        self.labels = TList(labels)  # type: TList[int]
         self.content = content  # type: Text
         self.parent_id = parent_id  # type: Optional[int]
         self._in_history = in_history  # type: int
@@ -120,7 +120,7 @@ class Todoist(OwlMixin):
 class Event(OwlMixin):
     def __init__(self, id, messages):
         self.id = id  # type: int
-        self.messages = messages  # type: List[Text]
+        self.messages = TList(messages)  # type: TList[Text]
 
 
 class SpecialEvents(OwlMixin):
@@ -174,26 +174,49 @@ class Config(OwlMixin):
         self.toggl = Toggl.from_dict(toggl)  # type: Toggl
         self.todoist = Todoist.from_dict(todoist)  # type: Todoist
         self.special_events = SpecialEvents.from_dict(special_events)  # type: SpecialEvents
-        self.message_format_by_event = message_format_by_event  # type: Dict[TodoistEvent, Text]
+        self.message_format_by_event = TDict(message_format_by_event)  # type: TDict[TodoistEvent, Text]
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format = DailyReportFormat.from_dict(daily_report_format)  # type: DailyReportFormat
         self.morning_report_format = MorningReportFormat.from_dict(morning_report_format)  # type: MorningReportFormat
         self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
-        self.project_by_id = Project.from_dicts_by_key(project_by_id)  # type: Dict[ProjectId, Project]
+        self.project_by_id = Project.from_dicts_by_key(project_by_id)  # type: TDict[ProjectId, Project]
+
+
+class TogglApiReport(OwlMixin):
+    def __init__(self, id, description, start, end, updated,
+                 dur, use_stop, pid=None, **extra):
+        self.id = id  # type: int
+        self.pid = pid  # type: Optional[int]
+        self.description = description  # type: Text
+        self.start = parser.parse(start)  # type: datetime
+        self.end = parser.parse(end)  # type: datetime
+        self.updated = parser.parse(updated) # type: datetime
+        self.dur = dur  # type: int
+        self.use_stop = use_stop  # type: bool
+
+    @property
+    def task_uniq_key(self):
+        return str(self.pid) + self.description
+
+
+class TogglApiDetail(OwlMixin):
+    def __init__(self, total_count, per_page, data, **extra):
+        self.total_count = total_count  # type: int
+        self.per_page = per_page  # type: int
+        self.data = TogglApiReport.from_dicts(data)  # type: TList[TogglApiReport]
 
 
 class TodoistApiTask(OwlMixin):
     def __init__(self, id, content, priority, project_id, labels, checked,
                  due_date_utc, date_added, date_lang,
-                 parent_id, collapsed, date_string,
-                 assigned_by_uid, is_archived, sync_id, in_history,
-                 indent, user_id, is_deleted, responsible_uid,
-                 day_order=None, item_order=None, due_date=None, all_day=None):
+                 collapsed, date_string, is_archived, in_history,
+                 indent, user_id, is_deleted,
+                 day_order=None, item_order=None, due_date=None, all_day=None, parent_id=None, **extra):
         self.id = id  # type: int
         self.content = content  # type: Text
         self.priority = priority  # type: int
         self.project_id = project_id  # type: int
-        self.labels = labels  # type: List[int]
+        self.labels = TList(labels)  # type: TList[int]
         self.checked = checked  # type: int
 
         self.due_date = due_date  # type: Optional[Text]
@@ -204,27 +227,29 @@ class TodoistApiTask(OwlMixin):
 
         self.day_order = day_order  # type: Optional[int]
         self.item_order = item_order  # type: Optional[int]
-        self.parent_id = parent_id  # type: int
+        self.parent_id = parent_id  # type: Optional[int]
         self.collapsed = collapsed  # type: int
 
-        self.assigned_by_uid = assigned_by_uid  # type: int
         self.is_archived = is_archived  # type: int
-        self.sync_id = sync_id  # type: int
         self.in_history = in_history  # type: int
         self.indent = indent  # type: int
         self.user_id = user_id  # type: int
         self.is_deleted = is_deleted  # type: int
-        self.responsible_uid = responsible_uid  # type: int
         self.all_day = all_day  # type: Optional[bool]
 
 
-class TodoistTask(OwlMixin):
-    def __init__(self, id, name, project_id, is_waiting, completed_date=None):
+class TaskReport(OwlMixin):
+    def __init__(self, id, name, project_id, project_name, is_waiting, elapsed=0,
+                 completed_date=None, due_date_utc=None, status=None):
         self.id = id  # type: int
         self.name = name  # type: Text
         self.project_id = project_id  # type: int
+        self.project_name = project_name  # type: Text
         self.is_waiting = is_waiting  # type: bool
-        self.completed_date = parser.parse(completed_date) if completed_date else None  # type: Optional[datetime]
+        self.elapsed = elapsed  # type: int
+        self.completed_date = completed_date  # type: Optional[datetime]
+        self.due_date_utc = due_date_utc  # type: Optional[Text]
+        self.status = status  # type: Optional[Status]
 
     @property
     def name_without_emoji(self):

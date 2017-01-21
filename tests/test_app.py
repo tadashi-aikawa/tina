@@ -38,7 +38,7 @@ def item_completed():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": 95746613,
+            "id": WORK_END_TASK,
             "content": 'TINA テスト',
             "labels": [652234],
             "project_id": DEVELOPMENT_PROJECT,
@@ -140,7 +140,7 @@ def reminder_fired():
     body = {
         "event_name": "reminder:fired",
         "event_data": {
-            "item_id": 95746613,
+            "item_id": 98590128,
             "id": 33482384
         }
     }
@@ -149,4 +149,4 @@ def reminder_fired():
         config = Config.from_yaml(f)
     app.exec_todoist(config, body)
 
-#item_added()
+#item_completed()

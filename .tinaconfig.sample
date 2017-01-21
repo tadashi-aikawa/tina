@@ -35,10 +35,11 @@ daily_report_format:
   icon:
     completed: "white_check_mark"
     uncompleted: "ballot_box_with_check"
-    interrupted: "ikiro"
-    waiting: "wigglecat"
+    removed: "wastebasket"
+    re_scheduled: "soon"
+    waiting: "hourglass"
+    not_start_yet: "fucho"
     empty: "empty"
-
 
 #---------------------------------
 # Grouping

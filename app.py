@@ -8,12 +8,14 @@ import re
 import boto3
 from chalice import Chalice
 from dateutil import parser
+from owlmixin import TList, TDict
 from pydash import py_
 from pytz import timezone
-from typing import List, Text, Any, Dict
+from typing import List, Text, Any, Dict, Tuple
 
 from chalicelib import api
 from chalicelib.models import *
+from fn import _
 
 # Set your environmental parameters
 REGION = 'ap-northeast-1'
@@ -36,65 +38,32 @@ def ping():
 # ------------------------
 
 def to_report_string(daily_report, report_format):
-    # type: (Any, DailyReportFormat) -> Text
-    s = daily_report['status']  # type: DailyReportStatus
-    return ":{}::{}: {}".format(
-        report_format.icon.interrupted if s.is_interrupted else report_format.icon.empty,
-        report_format.icon.completed if s.status == Status.COMPLETED \
-            else report_format.icon.uncompleted if s.status == Status.IN_PROGRESS \
+    # type: (TaskReport, DailyReportFormat) -> Text
+    status = daily_report.status  # type: Status
+    return ":{}: {}".format(
+        report_format.icon.completed if status == Status.COMPLETED \
+            else report_format.icon.uncompleted if status == Status.IN_PROGRESS \
+            else report_format.icon.re_scheduled if status == Status.RE_SCHEDULED \
+            else report_format.icon.removed if status == Status.REMOVED \
+            else report_format.icon.not_start_yet if status == Status.NOT_STARTED_YET \
             else report_format.icon.waiting,
-        report_format.base.format(**daily_report)
+        report_format.base.format(
+            name=daily_report.name,
+            project_name=daily_report.project_name,
+            elapsed=daily_report.elapsed or ''
+        )
     )
 
 
 def to_project_id(project_by_id, toggl_project_id):
-    # type: (Dict[ProjectId, Project], ProjectId) -> ProjectId
-    return py_.find_key(project_by_id,
-                        lambda x: toggl_project_id and x.toggl_id == toggl_project_id)
+    # type: (TDict[ProjectId, Project], ProjectId) -> ProjectId
+    return py_.find_key(project_by_id, lambda x: toggl_project_id and x.toggl_id == toggl_project_id)
 
 
 def to_project_name(project_by_id, toggl_project_id):
-    # type: (Dict[ProjectId, Project], ProjectId) -> Text
-    p = py_.find(project_by_id, lambda x: toggl_project_id and x.toggl_id == toggl_project_id)  # type: Project
+    # type: (TDict[ProjectId, Project], ProjectId) -> Text
+    p = project_by_id.find(lambda k, v: toggl_project_id and v.toggl_id == toggl_project_id)  # type: Project
     return p.name if p else "No Project"
-
-
-def to_status(task_pid, task_name, completed_tasks, uncompleted_tasks, interrupted_tasks):
-    # type: (int, Text, List[TodoistTask], List[TodoistTask], List[any]) -> DailyReportStatus
-    def to_identify(id, name):
-        # type: (int, Text) -> Text
-        return str(id) + name
-
-    completed_task_identifies = py_.map(
-        completed_tasks,
-        lambda x: to_identify(x.project_id, x.name_without_emoji)
-    )
-    uncompleted_task_identifies = py_.map(
-        uncompleted_tasks,
-        lambda x: to_identify(x.project_id, x.name_without_emoji)
-    )
-    interrupted_task_identifies = py_(interrupted_tasks) \
-        .map(lambda x: py_.find(completed_tasks + uncompleted_tasks, lambda y: x["object_id"] == y.id)) \
-        .filter() \
-        .map(lambda x: to_identify(x.project_id, x.name_without_emoji)) \
-        .value()
-    waiting_task_identifies = py_(uncompleted_tasks) \
-        .filter(lambda x: x.is_waiting) \
-        .map(lambda x: to_identify(x.project_id, x.name_without_emoji)) \
-        .value()
-
-    target = to_identify(task_pid, task_name)
-
-    # Warning: repeating tasks sometimes are included both completed_task and uncompleted_task.
-    # Order for conditional expression is very important.
-    return DailyReportStatus.from_dict({
-        "status": Status.WAITING if target in waiting_task_identifies \
-            else Status.COMPLETED if target in completed_task_identifies \
-            else Status.IN_PROGRESS if target in uncompleted_task_identifies \
-            else Status.COMPLETED,
-        "is_interrupted": target in interrupted_task_identifies or
-                          target not in completed_task_identifies + uncompleted_task_identifies
-    })
 
 
 # ------------------------
@@ -126,11 +95,17 @@ def minus3h(dt):
     return dt - timedelta(hours=3)
 
 
+def to_datetime(utcstr, tz):
+    # type: (Text, Text) -> datetime
+    return parser.parse(utcstr).astimezone(timezone(tz))
+
+
 def equal_now_day(utcstr, tz):
     # type: (Text, Text) -> bool
     if not utcstr:
         return False
-    x = parser.parse(utcstr).astimezone(timezone(tz))
+
+    x = to_datetime(utcstr, tz)
 
     # 3:00 - 3:00
     return minus3h(x).date() == minus3h(now(tz)).date()
@@ -140,10 +115,10 @@ def fetch_next_item(config):
     # type: (Config) -> any
     next_task = api.fetch_uncompleted_tasks(config.todoist.api_token) \
         .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
-        .reject(lambda x: config.special_labels.waiting.id in x.labels) \
-        .order_by(lambda x: x.day_order) \
-        .order_by(lambda x: x.priority, reverse=True) \
-        .find(lambda x: x.project_id in config.project_by_id.keys())
+        .reject(config.special_labels.waiting.id in _.labels) \
+        .order_by(_.day_order) \
+        .order_by(_.priority, reverse=True) \
+        .find(_.project_id in config.project_by_id.keys())
     """:type: TodoistApiTask"""
     if not next_task:
         return None
@@ -160,76 +135,138 @@ def fetch_next_item(config):
     }
 
 
-def create_daily_report(config):
-    # type: (Config) -> Any
-    now = datetime.now(timezone(config.timezone))
+def toggl_to_task_report(config, toggls, todoist_reports):
+    # type: (TList[TogglApiReport]) -> TList[TaskReport]
 
-    # toggl
-    toggl_reports = api.access_toggl(
-        '/details?workspace_id={}&since={}&user_agent=tina'.format(
-            config.toggl.workspace, minus3h(now).strftime('%Y-%m-%d')
-        ),
-        config.toggl.api_token,
-        True
-    ).json()['data']
+    def toggl_to_report(toggl):
+        # type: (TogglApiReport) -> TaskReport
+        return TList(todoist_reports).find(
+            _.project_id == to_project_id(config.project_by_id, toggl.pid) and \
+            _.name_without_emoji == toggl.description
+        )
+
+    toggl = toggls[0]
+    report = toggl_to_report(toggl)
+    return TaskReport.from_dict({
+        "id": report.id if report else -1,
+        "name": report.name if report else toggl.description,
+        "project_id": to_project_id(config.project_by_id, toggl.pid),
+        "project_name": to_project_name(config.project_by_id, toggl.pid),
+        "is_waiting": report.is_waiting if report else False,
+        "elapsed": sum([x.dur / 1000 / 60 for x in toggls])
+    })
+
+
+def create_daily_report(config):
+    # type: (Config) -> Tuple[TList[TaskReport], TList[TaskReport]]
 
     # todoist
-    complete_todoist_tasks = py_.map(
-        api.fetch_completed_tasks(config.todoist.api_token, minus3h(now).replace(hour=0, minute=0, second=0)),
-        lambda x: TodoistTask.from_dict({
-            "project_id": x["project_id"],
-            "id": x["task_id"],
-            "name": x["content"].split(" @")[0],
-            "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:],
-            "completed_date": x["completed_date"]
-        })
-    )
+    completed_todoist_reports = api.fetch_completed_tasks(
+        config.todoist.api_token, minus3h(now(config.timezone)).replace(hour=0, minute=0, second=0)
+    ).map(lambda x: TaskReport.from_dict({
+        "id": x["task_id"],
+        "name": x["content"].split(" @")[0],
+        "project_id": x["project_id"],
+        "project_name": config.project_by_id.get(x["project_id"]).name \
+            if config.project_by_id.get(x["project_id"]) else "なし",
+        "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:],
+        "completed_date": x["completed_date"]
+    })).filter(lambda x: is_measured_project(config, x.project_id))
+    """:type: TList[TaskReport]"""
 
-    uncompleted_todoist_tasks = py_.map(
-        api.fetch_uncompleted_tasks(config.todoist.api_token),
-        lambda x: TodoistTask.from_dict({
-            "project_id": x.project_id,
+    uncompleted_todoist_reports = api.fetch_uncompleted_tasks(config.todoist.api_token) \
+        .map(lambda x: TaskReport.from_dict({
             "id": x.id,
             "name": x.content,
-            "is_waiting": config.special_labels.waiting.id in x.labels
-        })
-    )
+            "project_id": x.project_id,
+            "project_name": config.project_by_id.get(x.project_id).name \
+                if config.project_by_id.get(x.project_id) else "なし",
+            "is_waiting": config.special_labels.waiting.id in x.labels,
+            "due_date_utc": x.due_date_utc
+        })).filter(lambda x: is_measured_project(config, x.project_id))
+    """:type: TList[TaskReport]"""
 
-    # Interrupted task
-    work_start_task = py_.find(complete_todoist_tasks,
-                               lambda x: x.id == config.special_events.start_work.id)
-    interrupted_tasks = py_.filter(
-        api.fetch_activities(config.todoist.api_token,
-                             '["item:added"]',
-                             minus3h(now).replace(hour=0, minute=0, second=0)),
-        lambda x: parser.parse(x["event_date"]) > work_start_task.completed_date
-    )
+    # toggl
+    toggl_reports = api.fetch_reports(workspace_id=config.toggl.workspace,
+                                     since=minus3h(now(config.timezone)),
+                                     api_token=config.toggl.api_token) \
+        .group_by(_.task_uniq_key) \
+        .to_values() \
+        .map(lambda xs: toggl_to_task_report(config, xs, completed_todoist_reports + uncompleted_todoist_reports))
+    """:type: TList[TaskReport]"""
 
-    def reports2task(reports):
-        r = reports[0]
-        project_id = to_project_id(config.project_by_id, r["pid"])
-        project_name = to_project_name(config.project_by_id, r["pid"])
+    work_start_date = completed_todoist_reports \
+        .find(_.id == config.special_events.start_work.id) \
+        .completed_date
+    """:type: datetime"""
 
-        return {
-            "name": r["description"],
-            "project_id": project_id,
-            "project_name": project_name,
-            "elapsed": py_.sum(reports, "dur") / 1000 / 60,
-            "status": to_status(
-                to_project_id(config.project_by_id, r["pid"]),
-                r["description"],
-                complete_todoist_tasks,
-                uncompleted_todoist_tasks,
-                interrupted_tasks
-            )
-        }
+    # ---
+    s3_obj = S3.get_object(Bucket=BUCKET, Key=SCHEDULED_TASKS)
+    # The task completed before scheduling is the scheduled
+    done_before_scheduled = toggl_reports \
+        .filter(lambda x: completed_todoist_reports.find(_.id == x.id)) \
+        .filter(lambda x: completed_todoist_reports.find(_.id == x.id).completed_date <= work_start_date)
 
-    return py_(toggl_reports) \
-        .group_by(lambda x: u"{}{}".format(x["description"], x["pid"])) \
-        .map_values(reports2task) \
-        .filter("name") \
-        .sort_by(reverse=True) \
-        .value()
+    scheduled_reports = TodoistApiTask.from_json_to_list(s3_obj['Body'].read()) \
+        .map(lambda x: TaskReport.from_dict({
+            "id": x.id,
+            "name": x.content,
+            "project_id": x.project_id,
+            "project_name": config.project_by_id.get(x.project_id).name \
+                if config.project_by_id.get(x.project_id) else "なし",
+            "is_waiting": config.special_labels.waiting.id in x.labels,
+            "elapsed": toggl_reports.find(_.id == x.id).elapsed \
+                if toggl_reports.find(_.id == x.id) else 0,
+            "due_date_utc": x.due_date_utc
+            })) \
+        .concat(done_before_scheduled) \
+        .filter(lambda x: is_measured_project(config, x.project_id)) \
+        .map(lambda x: TaskReport.from_dict({
+            "id": x.id,
+            "name": x.name,
+            "project_id": x.project_id,
+            "project_name": x.project_name,
+            "is_waiting": x.is_waiting,
+            "elapsed": x.elapsed,
+            "due_date_utc": x.due_date_utc,
+            "status": Status.COMPLETED if x.id in completed_todoist_reports.map(_.id) \
+                else Status.REMOVED if not x.id in uncompleted_todoist_reports.map(_.id) \
+                else Status.RE_SCHEDULED if to_datetime(x.due_date_utc, config.timezone).day != minus3h(now(config.timezone)).day \
+                else Status.WAITING if x.is_waiting \
+                else Status.NOT_STARTED_YET if x.elapsed == 0 \
+                else Status.IN_PROGRESS
+        })) \
+        .order_by(_.elapsed, reverse=True)
+    """:type: TList[TaskReport]"""
+
+    measured_interrupted_reports = toggl_reports \
+        .reject(lambda x: x.id in scheduled_reports.map(_.id))
+    """:type: TList[TaskReport]"""
+    unmeasured_interrupted_reports = uncompleted_todoist_reports \
+        .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
+        .reject(lambda x: x.id in measured_interrupted_reports.map(_.id)) \
+        .reject(lambda x: x.id in scheduled_reports.map(_.id))
+    """:type: TList[TaskReport]"""
+
+    interrupted_reports = TList(measured_interrupted_reports + unmeasured_interrupted_reports) \
+        .map(lambda x: TaskReport.from_dict({
+            "id": x.id,
+            "name": x.name,
+            "project_id": x.project_id,
+            "project_name": x.project_name,
+            "is_waiting": x.is_waiting,
+            "elapsed": x.elapsed,
+            "completed_date": x.completed_date,
+            "due_date_utc": x.due_date_utc,
+            "status": Status.COMPLETED if x.id in completed_todoist_reports.map(_.id) \
+                else Status.COMPLETED if not x.id in uncompleted_todoist_reports.map(_.id) \
+                else Status.WAITING if x.is_waiting \
+                else Status.NOT_STARTED_YET if x.elapsed == 0 \
+                else Status.IN_PROGRESS
+        })) \
+        .order_by(_.elapsed, reverse=True)
+
+    return scheduled_reports, interrupted_reports
 
 
 # ------------------------
@@ -285,30 +322,45 @@ def exec_completed(entity, config):
         # TODO: Create independent function
         api.notify_slack(py_.sample(special_event.messages), config)
         if special_event == config.special_events.leave_work:
-            api.notify_slack(
-                "\n".join(py_.map(
-                    create_daily_report(config),
-                    lambda r: to_report_string(r, config.daily_report_format)
-                )),
-                config
+            scheduled, interrupted = create_daily_report(config)  # type: TList[TaskReport]
+            report_message = """
+:spiral_calendar_pad: *朝に予定したタスク* `{total_scheduled}時間`
+
+{scheduled}
+
+
+:ikiro: *割り込みで入ったタスク* `{total_interrupted}時間`
+
+{interrupted}
+            """.format(
+                total_scheduled=round(scheduled.sum_by(_.elapsed) / 60.0, 1),
+                total_interrupted=round(interrupted.sum_by(_.elapsed) / 60.0, 1),
+                scheduled=scheduled.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
+                interrupted=interrupted.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
             )
+            api.notify_slack(report_message, config)
         elif special_event == config.special_events.start_work:
+            scheduled_tasks = api.fetch_uncompleted_tasks(config.todoist.api_token) \
+                .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
+                .filter(lambda x:
+                        is_valid_project(config, x.project_id) or
+                        in_special_events(config, x.id)
+                        ) \
+                .order_by(_.day_order) \
+                .order_by(_.priority, reverse=True)
+            """:type: TList[TodoistApiTask]"""
+
+            S3.put_object(Bucket=BUCKET, Key=SCHEDULED_TASKS,
+                          Body=scheduled_tasks.reject(lambda x: in_special_events(config, x.id)).to_json())
+
             api.notify_slack(
-                api.fetch_uncompleted_tasks(config.todoist.api_token) \
-                   .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
-                   .filter(lambda x:
-                           is_measured_project(config, x.project_id) or
-                           in_special_events(config, x.id)
-                           ) \
-                   .order_by(lambda x: x.day_order) \
-                   .order_by(lambda x: x.priority, reverse=True) \
-                   .map(lambda x:
-                        x.content if not is_measured_project(config, x.project_id) \
-                        else config.morning_report_format.base.format(
-                            name=x.content,
-                            project_name=config.project_by_id[x.project_id].name
-                        )) \
-                   .join("\n"),
+                scheduled_tasks.map(lambda x:
+                                    x.content if not is_measured_project(config, x.project_id) \
+                                    else config.morning_report_format.base.format(
+                                        name=x.content,
+                                        project_name=config.project_by_id[x.project_id].name
+                                    )) \
+                .join("\n"),
                 config
             )
     else:
@@ -330,8 +382,8 @@ def exec_todoist(config, body):
     # type: (Config, Any) -> bool
     item = TodoistApiTask.from_dict(body["event_data"]) \
         if body['event_name'] != "reminder:fired" \
-        else py_.find(api.fetch_uncompleted_tasks(config.todoist.api_token),
-                      lambda x: x.id == body["event_data"]['item_id'])
+        else api.fetch_uncompleted_tasks(config.todoist.api_token) \
+        .find(_.id == body["event_data"]['item_id'])
 
     project = config.project_by_id.get(item.project_id)
     labels = item.labels  # type: List[int]
