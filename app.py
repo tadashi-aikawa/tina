@@ -9,6 +9,7 @@ import boto3
 from chalice import Chalice
 from dateutil import parser
 from owlmixin import TList, TDict
+from owlmixin.util import O
 from pydash import py_
 from pytz import timezone
 from typing import List, Text, Any, Dict, Tuple
@@ -355,10 +356,9 @@ def exec_completed(entity, config):
 
             api.notify_slack(
                 scheduled_tasks.map(lambda x:
-                                    x.content if not is_measured_project(config, x.project_id) \
-                                    else config.morning_report_format.base.format(
+                                    config.morning_report_format.base.format(
                                         name=x.content,
-                                        project_name=config.project_by_id[x.project_id].name
+                                        project_name=O(config.project_by_id.get(x.project_id)).then(_.name).or_("節目")
                                     )) \
                 .join("\n"),
                 config
