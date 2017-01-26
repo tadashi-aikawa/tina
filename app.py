@@ -116,10 +116,10 @@ def fetch_next_item(config):
     # type: (Config) -> any
     next_task = api.fetch_uncompleted_tasks(config.todoist.api_token) \
         .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
-        .reject(config.special_labels.waiting.id in _.labels) \
+        .reject(lambda x: config.special_labels.waiting.id in x.labels) \
         .order_by(_.day_order) \
         .order_by(_.priority, reverse=True) \
-        .find(_.project_id in config.project_by_id.keys())
+        .find(lambda x: x.project_id in config.project_by_id.keys())
     """:type: TodoistApiTask"""
     if not next_task:
         return None
