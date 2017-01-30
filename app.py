@@ -297,8 +297,10 @@ def exec_added(entity, config):
     times = re.compile('\d{1,2}:\d{2}').findall(entity.content)
     if times:
         hour, minute = times[0].split(':')
-        begin_time = minus3h(datetime.now(timezone(config.timezone))).replace(hour=int(hour), minute=int(minute),
-                                                                              second=0)
+        target_time = O(entity.due_date_utc) \
+            .then(lambda d: to_datetime(d, config.timezone)) \
+            .or_(datetime.now(timezone(config.timezone)))
+        begin_time = minus3h(target_time).replace(hour=int(hour), minute=int(minute), second=0)
         r = api.add_reminder(
             config.todoist.api_token,
             entity.id,
@@ -396,7 +398,8 @@ def exec_todoist(config, body):
         "labels": labels,
         "content": item.content,
         "parent_id": item.parent_id,
-        "in_history": item.in_history
+        "in_history": item.in_history,
+        "due_date_utc": item.due_date_utc
     })
 
     if not entity.project_name and not in_special_events(config, entity.id):
