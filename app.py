@@ -28,6 +28,8 @@ S3 = boto3.client('s3', region_name=REGION)
 app = Chalice(app_name='tina')
 app.debug = True
 
+g_s3_obj = S3.get_object(Bucket=BUCKET, Key=KEY)
+g_config = Config.from_yaml(g_s3_obj['Body'].read())  # type: Config
 
 @app.route('/ping')
 def ping():
@@ -420,4 +422,4 @@ def todoist():
     config = Config.from_yaml(s3_obj['Body'].read())  # type: Config
     body = app.current_request.json_body
 
-    return {'is_success': exec_todoist(config, body)}
+    return {'is_success': exec_todoist(g_config, body)}
