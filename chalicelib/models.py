@@ -76,15 +76,16 @@ class MorningReportFormat(OwlMixin):
 class Entity(OwlMixin):
     def __init__(self, event, id, project_id,
                  project_name, labels, content,
-                 parent_id, in_history):
+                 in_history, parent_id=None, due_date_utc=None):
         self.event = event  # type: Text
         self.id = id  # type: int
         self.project_id = project_id  # type: int
         self.project_name = project_name  # type: Text
         self.labels = TList(labels)  # type: TList[int]
         self.content = content  # type: Text
-        self.parent_id = parent_id  # type: Optional[int]
         self._in_history = in_history  # type: int
+        self.parent_id = parent_id  # type: Optional[int]
+        self.due_date_utc = due_date_utc  # type: Optional[Text]
 
     @property
     def content_without_emoji(self):
