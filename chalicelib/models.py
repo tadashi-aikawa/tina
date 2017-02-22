@@ -39,7 +39,7 @@ ProjectId = int
 
 
 def remove_emoji(content):
-    return re.sub(r' *:[^:]+:( +|$)', '', content)
+    return re.sub(r':[^:]+?:', '', content).strip()
 
 
 class Status(Enum):

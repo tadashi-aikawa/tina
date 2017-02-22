@@ -8,7 +8,7 @@ import re
 import boto3
 from chalice import Chalice
 from dateutil import parser
-from owlmixin import TList, TDict
+from owlmixin.owlcollections import TList, TDict
 from owlmixin.util import O
 from pydash import py_
 from pytz import timezone
@@ -141,7 +141,7 @@ def toggl_to_task_report(config, toggls, todoist_reports):
 
     def toggl_to_report(toggl):
         # type: (TogglApiReport) -> TaskReport
-        return TList(todoist_reports).find(
+        return todoist_reports.find(
             _.project_id == to_project_id(config.project_by_id, toggl.pid) and \
             _.name_without_emoji == toggl.description
         )
@@ -249,7 +249,7 @@ def create_daily_report(config):
         .reject(lambda x: x.id in scheduled_reports.map(_.id))
     """:type: TList[TaskReport]"""
 
-    interrupted_reports = TList(measured_interrupted_reports + unmeasured_interrupted_reports) \
+    interrupted_reports = (measured_interrupted_reports + unmeasured_interrupted_reports) \
         .map(lambda x: TaskReport.from_dict({
             "id": x.id,
             "name": x.name,
