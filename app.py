@@ -168,8 +168,7 @@ def create_daily_report(config):
         "id": x["task_id"],
         "name": x["content"].split(" @")[0],
         "project_id": x["project_id"],
-        "project_name": config.project_by_id.get(x["project_id"]).name \
-            if config.project_by_id.get(x["project_id"]) else "なし",
+        "project_name": O(config.project_by_id.get(x["project_id"])).then(_.name).or_("なし"),
         "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:],
         "completed_date": x["completed_date"]
     })).filter(lambda x: is_measured_project(config, x.project_id))
@@ -180,8 +179,7 @@ def create_daily_report(config):
             "id": x.id,
             "name": x.content,
             "project_id": x.project_id,
-            "project_name": config.project_by_id.get(x.project_id).name \
-                if config.project_by_id.get(x.project_id) else "なし",
+            "project_name": O(config.project_by_id.get(x.project_id)).then(_.name).or_("なし"),
             "is_waiting": config.special_labels.waiting.id in x.labels,
             "due_date_utc": x.due_date_utc
         })).filter(lambda x: is_measured_project(config, x.project_id))
@@ -213,11 +211,9 @@ def create_daily_report(config):
             "id": x.id,
             "name": x.content,
             "project_id": x.project_id,
-            "project_name": config.project_by_id.get(x.project_id).name \
-                if config.project_by_id.get(x.project_id) else "なし",
+            "project_name": O(config.project_by_id.get(x.project_id)).then(_.name).or_("なし"),
             "is_waiting": config.special_labels.waiting.id in x.labels,
-            "elapsed": toggl_reports.find(_.id == x.id).elapsed \
-                if toggl_reports.find(_.id == x.id) else 0,
+            "elapsed": O(toggl_reports.find(_.id == x.id)).then(_.elapsed).or_(0),
             "due_date_utc": x.due_date_utc
             })) \
         .concat(done_before_scheduled) \
