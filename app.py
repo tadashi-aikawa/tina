@@ -143,7 +143,7 @@ def toggl_to_task_report(config, toggls, todoist_reports):
         # type: (TogglApiReport) -> TaskReport
         return todoist_reports.find(
             _.project_id == to_project_id(config.project_by_id, toggl.pid) and \
-            _.name_without_emoji == toggl.description
+            _.name_without_emoji == toggl.description_without_emoji
         )
 
     toggl = toggls[0]

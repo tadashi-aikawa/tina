@@ -199,6 +199,10 @@ class TogglApiReport(OwlMixin):
     def task_uniq_key(self):
         return str(self.pid) + self.description
 
+    @property
+    def description_without_emoji(self):
+        return remove_emoji(self.description)
+
 
 class TogglApiDetail(OwlMixin):
     def __init__(self, total_count, per_page, data, **extra):
