@@ -27,7 +27,7 @@ class TestMinus3H:
 # -------------------------------
 
 WORK_BEGIN_TASK = 72824136
-WORK_END_TASK = 73847457
+WORK_END_TASK = 107829384
 REPEAT_TASK = 72824144
 
 DEVELOPMENT_PROJECT = 166337596
@@ -39,7 +39,7 @@ def item_completed():
         "event_name": "item:completed",
         "event_data": {
             "id": WORK_END_TASK,
-            "content": 'TINA テスト',
+            "content": 'TINA テスト (19:00-)',
             "labels": [652234],
             "project_id": DEVELOPMENT_PROJECT,
             "in_history": 0,
@@ -53,7 +53,7 @@ def item_completed():
             "assigned_by_uid": 5612524,
             "date_added": "Sun 23 Oct 2016 09:39:51 +0000",
             "user_id": 5612524,
-            "due_date_utc": "Tue 08 Nov 2016 14:59:59 +0000",
+            "due_date_utc": "Tue 01 Feb 2017 23:59:59 +0000",
             "sync_id": None,
             "responsible_uid": None,
             "item_order": 521,
@@ -63,17 +63,15 @@ def item_completed():
         }
     }
 
-    with open('../.tinaconfig') as f:
-        config = Config.from_yaml(f)
-    app.exec_todoist(config, body)
+    app.exec_todoist(Config.from_yamlf('../.tinaconfig'), body)
 
 
 def item_added():
     body = {
         "event_name": "item:added",
         "event_data": {
-            "id": 39764256,
-            "content": "てすとのたすく",
+            "id": 100737297,
+            "content": 'TINA テスト (19:00-)',
             "project_id": DEVELOPMENT_PROJECT,
             "labels": [652233],
             "in_history": 0,
@@ -87,7 +85,7 @@ def item_added():
             "assigned_by_uid": None,
             "date_added": "Tue 08 Nov 2016 00:33:32 +0000",
             "user_id": 5612524,
-            "due_date_utc": "Wed 16 Nov 2016 14:59:59 +0000",
+            "due_date_utc": "Thu 02 Feb 2017 14:59:59 +0000",
             "sync_id": None,
             "responsible_uid": None,
             "item_order": 523,
@@ -97,9 +95,7 @@ def item_added():
         }
     }
 
-    with open('../.tinaconfig') as f:
-        config = Config.from_yaml(f)
-    app.exec_todoist(config, body)
+    app.exec_todoist(Config.from_yamlf('../.tinaconfig'), body)
 
 
 def item_deleted():
@@ -131,9 +127,7 @@ def item_deleted():
         }
     }
 
-    with open('../.tinaconfig') as f:
-        config = Config.from_yaml(f)
-    app.exec_todoist(config, body)
+    app.exec_todoist(Config.from_yamlf('../.tinaconfig'), body)
 
 
 def reminder_fired():
@@ -145,8 +139,7 @@ def reminder_fired():
         }
     }
 
-    with open('../.tinaconfig') as f:
-        config = Config.from_yaml(f)
-    app.exec_todoist(config, body)
+    app.exec_todoist(Config.from_yamlf('../.tinaconfig'), body)
 
 #item_completed()
+
