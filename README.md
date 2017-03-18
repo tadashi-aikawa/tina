@@ -61,6 +61,8 @@ in `daily_report_format.base` ...
 | name               | Text |
 | project_name       | Text |
 | elapsed [minutes] | int  |
+| estimate [minutes]| int  |
+| lag [minutes]     | Text |
 
 in `morning_report_format.base` ...
 

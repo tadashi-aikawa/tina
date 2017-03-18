@@ -51,7 +51,10 @@ def to_report_string(daily_report, report_format):
         report_format.base.format(
             name=daily_report.name,
             project_name=daily_report.project_name,
-            elapsed=daily_report.elapsed or ''
+            elapsed=daily_report.elapsed or '',
+            estimate=daily_report.estimate or '',
+            lag="{:+}".format(daily_report.elapsed - daily_report.estimate)
+                if daily_report.estimate and daily_report.elapsed else ''
         )
     )
 
@@ -170,7 +173,10 @@ def create_daily_report(config):
         "project_id": x["project_id"],
         "project_name": O(config.project_by_id.get(x["project_id"])).then(_.name).or_("なし"),
         "is_waiting": config.special_labels.waiting.name in x["content"].split(" @")[1:],
-        "completed_date": x["completed_date"]
+        "completed_date": x["completed_date"],
+        "estimate": O(
+            config.special_labels.estimates.find(lambda l: l.name in x["content"].split(" @")[1:])
+        ).then_or_none(_.value)
     })).filter(lambda x: is_measured_project(config, x.project_id))
     """:type: TList[TaskReport]"""
 
@@ -181,7 +187,10 @@ def create_daily_report(config):
             "project_id": x.project_id,
             "project_name": O(config.project_by_id.get(x.project_id)).then(_.name).or_("なし"),
             "is_waiting": config.special_labels.waiting.id in x.labels,
-            "due_date_utc": x.due_date_utc
+            "due_date_utc": x.due_date_utc,
+            "estimate": O(
+                config.special_labels.estimates.find(lambda l: l.id in x.labels)
+            ).then_or_none(_.value)
         })).filter(lambda x: is_measured_project(config, x.project_id))
     """:type: TList[TaskReport]"""
 
@@ -216,6 +225,9 @@ def create_daily_report(config):
             "is_waiting": config.special_labels.waiting.id in x.labels,
             "elapsed": O(toggl_reports.find(_.id == x.id)).then(_.elapsed).or_(0),
             "due_date_utc": x.due_date_utc,
+            "estimate": O(
+                config.special_labels.estimates.find(lambda l: l.id in x.labels)
+            ).then_or_none(_.value),
             "status": Status.COMPLETED if x.id in completed_todoist_reports.map(_.id) \
                 else Status.REMOVED if not x.id in uncompleted_todoist_reports.map(_.id) \
                 else Status.RE_SCHEDULED if to_datetime(x.due_date_utc, config.timezone).day != minus3h(now(config.timezone)).day \
@@ -245,6 +257,7 @@ def create_daily_report(config):
             "elapsed": x.elapsed,
             "completed_date": x.completed_date,
             "due_date_utc": x.due_date_utc,
+            "estimate": x.estimate,
             "status": Status.COMPLETED if x.id in completed_todoist_reports.map(_.id) \
                 else Status.COMPLETED if not x.id in uncompleted_todoist_reports.map(_.id) \
                 else Status.WAITING if x.is_waiting \

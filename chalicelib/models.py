@@ -143,14 +143,16 @@ class SpecialEvents(OwlMixin):
 
 
 class Label(OwlMixin):
-    def __init__(self, id, name):
+    def __init__(self, id, name, value=None):
         self.id = id  # type: int
         self.name = name  # type: Text
+        self.value = value  # type: Optional[any]
 
 
 class SpecialLabels(OwlMixin):
-    def __init__(self, waiting):
+    def __init__(self, waiting, estimates):
         self.waiting = Label.from_dict(waiting)  # type: Label
+        self.estimates = Label.from_dicts(estimates)  # type: TList[Label]
 
 
 class Project(OwlMixin):
@@ -245,7 +247,7 @@ class TodoistApiTask(OwlMixin):
 
 class TaskReport(OwlMixin):
     def __init__(self, id, name, project_id, project_name, is_waiting, elapsed=0,
-                 completed_date=None, due_date_utc=None, status=None):
+                 completed_date=None, due_date_utc=None, status=None, estimate=None):
         self.id = id  # type: int
         self.name = name  # type: Text
         self.project_id = project_id  # type: int
@@ -255,6 +257,7 @@ class TaskReport(OwlMixin):
         self.completed_date = completed_date  # type: Optional[datetime]
         self.due_date_utc = due_date_utc  # type: Optional[Text]
         self.status = status  # type: Optional[Status]
+        self.estimate = estimate  # type: Optional[int]
 
     @property
     def name_without_emoji(self):
