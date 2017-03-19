@@ -358,7 +358,10 @@ def exec_completed(entity, config):
                 scheduled_tasks.map(lambda x:
                                     config.morning_report_format.base.format(
                                         name=x.content,
-                                        project_name=O(config.project_by_id.get(x.project_id)).then(_.name).or_("節目")
+                                        project_name=O(config.project_by_id.get(x.project_id)).then(_.name).or_("節目"),
+                                        estimate_label=O(
+                                            config.special_labels.estimates.find(lambda l: l.id in x.labels)
+                                        ).then(_.name).or_('----')
                                     )) \
                 .join("\n"),
                 config

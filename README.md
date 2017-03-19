@@ -70,6 +70,7 @@ in `morning_report_format.base` ...
 |--------------------|------|
 | name               | Text |
 | project_name       | Text |
+| estimate_label     | Text |
 
 
 ### Upload `.tinaconfig` to AWS S3
