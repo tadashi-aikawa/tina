@@ -157,6 +157,7 @@ def toggl_to_task_report(config, toggls, todoist_reports):
         "project_id": to_project_id(config.project_by_id, toggl.pid),
         "project_name": to_project_name(config.project_by_id, toggl.pid),
         "is_waiting": report.is_waiting if report else False,
+        "estimate": report.estimate if report else None,
         "elapsed": sum([x.dur / 1000 / 60 for x in toggls])
     })
 
