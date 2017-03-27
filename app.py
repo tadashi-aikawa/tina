@@ -140,7 +140,7 @@ def fetch_next_item(config):
 
 
 def toggl_to_task_report(config, toggls, todoist_reports):
-    # type: (TList[TogglApiReport]) -> TList[TaskReport]
+    # type: (Config, Any, TList[TogglApiReport]) -> TList[TaskReport]
 
     def toggl_to_report(toggl):
         # type: (TogglApiReport) -> TaskReport
@@ -336,7 +336,7 @@ def exec_completed(entity, config):
 {interrupted}
             """.format(
                 total_scheduled=round(scheduled.sum_by(_.elapsed) / 60.0, 1),
-                scheduled_estimate=round(scheduled.sum_by(_.estimate) / 60.0, 1),
+                scheduled_estimate=round(scheduled.filter(_.estimate).sum_by(_.estimate) / 60.0, 1),
                 total_interrupted=round(interrupted.sum_by(_.elapsed) / 60.0, 1),
                 scheduled=scheduled.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
                 interrupted=interrupted.map(lambda r: to_report_string(r, config.daily_report_format)).join("\n"),
