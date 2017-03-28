@@ -125,8 +125,9 @@ class Event(OwlMixin):
 
 
 class SpecialEvents(OwlMixin):
-    def __init__(self, start_work, lunch_start, lunch_end,
+    def __init__(self, start_make_schedule, start_work, lunch_start, lunch_end,
                  must_task_completed,  leave_work):
+        self.start_make_schedule = Event.from_dict(start_make_schedule)  # type: Event
         self.start_work = Event.from_dict(start_work)  # type: Event
         self.lunch_start = Event.from_dict(lunch_start)  # type: Event
         self.lunch_end = Event.from_dict(lunch_end)  # type: Event
@@ -156,9 +157,10 @@ class SpecialLabels(OwlMixin):
 
 
 class Project(OwlMixin):
-    def __init__(self, name, toggl_id=None):
+    def __init__(self, name, toggl_id=None, order_earlier=False):
         self.name = name  # type: Text
         self.toggl_id = toggl_id  # type: Optional[int]
+        self.order_earlier = order_earlier  # type bool
 
 
 class Remind(OwlMixin):
@@ -169,7 +171,7 @@ class Remind(OwlMixin):
 
 class Config(OwlMixin):
     def __init__(self, timezone, remind, slack, toggl, todoist,
-                 special_events, message_format_by_event, next_message_format,
+                 special_events, message_format_by_event, next_message_format, daily_default_order,
                  daily_report_format, morning_report_format, special_labels, project_by_id):
         self.timezone = timezone  # type: Text
         self.remind = Remind.from_dict(remind)  # type: Remind
@@ -178,6 +180,7 @@ class Config(OwlMixin):
         self.todoist = Todoist.from_dict(todoist)  # type: Todoist
         self.special_events = SpecialEvents.from_dict(special_events)  # type: SpecialEvents
         self.message_format_by_event = TDict(message_format_by_event)  # type: TDict[TodoistEvent, Text]
+        self.daily_default_order = TList(daily_default_order)  # type: TList[int]
         self.next_message_format = next_message_format  # type: Text
         self.daily_report_format = DailyReportFormat.from_dict(daily_report_format)  # type: DailyReportFormat
         self.morning_report_format = MorningReportFormat.from_dict(morning_report_format)  # type: MorningReportFormat

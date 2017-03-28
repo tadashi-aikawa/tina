@@ -98,3 +98,20 @@ def add_reminder(todoist_token, item_id, remind_time):
     })
 
     return r.ok
+
+
+def update_day_orders(todoist_token, ids):
+    commands = [{
+        "type": "item_update_day_orders",
+        "uuid": str(uuid.uuid4()),
+        "args": {
+            "ids_to_orders": {x: i+1 for i, x in enumerate(ids)},
+        }
+    }]
+
+    r = requests.get(TODOIST_API_URL + '/sync', data={
+        "token": todoist_token,
+        "commands": json.dumps(commands)
+    })
+
+    return r.ok

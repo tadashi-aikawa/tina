@@ -26,6 +26,7 @@ class TestMinus3H:
 
 # -------------------------------
 
+START_MAKE_SCHEDULE = 107829138
 WORK_BEGIN_TASK = 72824136
 WORK_END_TASK = 107829384
 REPEAT_TASK = 72824144
@@ -38,7 +39,7 @@ def item_completed():
     body = {
         "event_name": "item:completed",
         "event_data": {
-            "id": WORK_END_TASK,
+            "id": START_MAKE_SCHEDULE,
             "content": 'TINA テスト (19:00-)',
             "labels": [652234],
             "project_id": DEVELOPMENT_PROJECT,

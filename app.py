@@ -368,6 +368,24 @@ def exec_completed(entity, config):
                 .join("\n"),
                 config
             )
+        elif special_event == config.special_events.start_make_schedule:
+            order_undefined = api.fetch_uncompleted_tasks(config.todoist.api_token) \
+                .filter(lambda x: equal_now_day(x.due_date_utc, config.timezone)) \
+                .reject(lambda x: x.id in config.daily_default_order)
+            """:type: TList[TodoistApiTask]"""
+
+            earlier_ids = order_undefined.filter(
+                lambda x: O(config.project_by_id.get(x.project_id)).then_or_none(_.order_earlier)
+            ).map(_.id)
+
+            later_ids = order_undefined.reject(
+                lambda x: O(config.project_by_id.get(x.project_id)).then_or_none(_.order_earlier)
+            ).map(_.id)
+
+            api.update_day_orders(
+                config.todoist.api_token,
+                earlier_ids + config.daily_default_order + later_ids
+            )
     else:
         next_item = fetch_next_item(config)
         next_message = config.next_message_format.format(**next_item) if next_item is not None else ''
