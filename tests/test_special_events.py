@@ -12,7 +12,8 @@ class TestFindById:
             "lunch_start": {"id": 2, "messages": ["b"]},
             "lunch_end": {"id": 3, "messages": ["c"]},
             "must_task_completed": {"id": 4, "messages": ["d"]},
-            "leave_work": {"id": 5, "messages": ["e"]}
+            "leave_work": {"id": 5, "messages": ["e"]},
+            "start_make_schedule": {"id": 6, "messages": ["f"]}
         })
 
         actual = s.find_by_id(3)  # type: Event
@@ -25,9 +26,10 @@ class TestFindById:
             "lunch_start": {"id": 2, "messages": ["b"]},
             "lunch_end": {"id": 3, "messages": ["c"]},
             "must_task_completed": {"id": 4, "messages": ["d"]},
-            "leave_work": {"id": 5, "messages": ["e"]}
+            "leave_work": {"id": 5, "messages": ["e"]},
+            "start_make_schedule": {"id": 6, "messages": ["f"]}
         })
 
-        actual = s.find_by_id(6)  # type: Event
+        actual = s.find_by_id(7)  # type: Event
 
         assert actual is None

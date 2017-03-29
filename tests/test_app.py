@@ -143,4 +143,3 @@ def reminder_fired():
     app.exec_todoist(Config.from_yamlf('../.tinaconfig'), body)
 
 #item_completed()
-
