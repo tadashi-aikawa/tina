@@ -64,11 +64,24 @@ def fetch_uncompleted_tasks(todoist_token):
 
 
 def fetch_completed_tasks(todoist_token, since):
-    return TList(requests.get(TODOIST_API_URL + '/completed/get_all', data={
-        "token": todoist_token,
-        "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
-        "limit": 50
-    }).json()['items'])
+    def fetch_all():
+        offset = 0
+        max_limit = 50
+
+        while True:
+            rs = TList(requests.get(TODOIST_API_URL + '/completed/get_all', data={
+                "token": todoist_token,
+                "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
+                "offset": offset,
+                "limit": max_limit
+            }).json()['items'])
+            yield rs
+
+            if len(rs) != max_limit:
+                break
+            offset = offset + max_limit
+
+    return TList(fetch_all()).flatten()
 
 
 def fetch_activities(todoist_token, object_event_types, since):
