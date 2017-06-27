@@ -171,8 +171,8 @@ class Remind(OwlMixin):
 
 class Config(OwlMixin):
     def __init__(self, timezone, remind, slack, toggl, todoist,
-                 special_events, message_format_by_event, next_message_format, daily_default_order,
-                 daily_report_format, morning_report_format, special_labels, project_by_id):
+                 special_events, message_format_by_event, daily_default_order,
+                 daily_report_format, morning_report_format, special_labels, project_by_id, next_message_format=None):
         self.timezone = timezone  # type: Text
         self.remind = Remind.from_dict(remind)  # type: Remind
         self.slack = Slack.from_dict(slack)  # type: Slack
@@ -181,11 +181,11 @@ class Config(OwlMixin):
         self.special_events = SpecialEvents.from_dict(special_events)  # type: SpecialEvents
         self.message_format_by_event = TDict(message_format_by_event)  # type: TDict[TodoistEvent, Text]
         self.daily_default_order = TList(daily_default_order)  # type: TList[int]
-        self.next_message_format = next_message_format  # type: Text
         self.daily_report_format = DailyReportFormat.from_dict(daily_report_format)  # type: DailyReportFormat
         self.morning_report_format = MorningReportFormat.from_dict(morning_report_format)  # type: MorningReportFormat
         self.special_labels = SpecialLabels.from_dict(special_labels)  # type: SpecialLabels
         self.project_by_id = Project.from_dicts_by_key(project_by_id)  # type: TDict[ProjectId, Project]
+        self.next_message_format = next_message_format  # type: Optional[Text]
 
 
 class TogglApiReport(OwlMixin):

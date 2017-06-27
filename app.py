@@ -380,7 +380,7 @@ def exec_completed(entity, config):
                 earliers.map(_.id) + config.daily_default_order + laters.map(_.id)
             )
     else:
-        next_item = fetch_next_item(config)
+        next_item = config.next_message_format and fetch_next_item(config) 
         next_message = config.next_message_format.format(**next_item) if next_item is not None else ''
         message = config.message_format_by_event[entity.event].format(**entity.to_dict()) + '\n' + next_message
         api.notify_slack(message, config)
