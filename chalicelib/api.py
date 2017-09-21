@@ -55,7 +55,7 @@ def notify_slack(message, config):
 
 def fetch_uncompleted_tasks(todoist_token):
     # type: (Text) -> TList[TodoistApiTask]
-    items = requests.get(TODOIST_API_URL + '/sync', data={
+    items = requests.get(TODOIST_API_URL + '/sync', params={
         "token": todoist_token,
         "sync_token": "*",
         "resource_types": '["items"]'
@@ -69,7 +69,7 @@ def fetch_completed_tasks(todoist_token, since):
         max_limit = 50
 
         while True:
-            rs = TList(requests.get(TODOIST_API_URL + '/completed/get_all', data={
+            rs = TList(requests.get(TODOIST_API_URL + '/completed/get_all', params={
                 "token": todoist_token,
                 "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
                 "offset": offset,
@@ -85,7 +85,7 @@ def fetch_completed_tasks(todoist_token, since):
 
 
 def fetch_activities(todoist_token, object_event_types, since):
-    return requests.get(TODOIST_API_URL + '/activity/get', data={
+    return requests.get(TODOIST_API_URL + '/activity/get', params={
         "token": todoist_token,
         "since": since.astimezone(utc).strftime('%Y-%m-%dT%H:%M'),
         "object_event_types": object_event_types,
@@ -105,7 +105,7 @@ def add_reminder(todoist_token, item_id, remind_time):
         }
     }]
 
-    r = requests.get(TODOIST_API_URL + '/sync', data={
+    r = requests.get(TODOIST_API_URL + '/sync', params={
         "token": todoist_token,
         "commands": json.dumps(commands)
     })
@@ -122,7 +122,7 @@ def update_day_orders(todoist_token, ids):
         }
     }]
 
-    r = requests.get(TODOIST_API_URL + '/sync', data={
+    r = requests.get(TODOIST_API_URL + '/sync', params={
         "token": todoist_token,
         "commands": json.dumps(commands)
     })
